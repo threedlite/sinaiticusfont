@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Character Classification Tool - Codex Sinaiticus</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 10px 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .progress-container {
+            background: #e2e8f0;
+            border-radius: 6px;
+            height: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .image-viewer {
+            text-align: center;
+        }
+        
+        .image-container {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .character-image {
+            max-width: 100%;
+            max-height: 220px;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .image-info {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 0;
+        }
+        
+        .quality-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .quality-high {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .quality-medium {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .quality-low {
+            background: #f56565;
+            color: white;
+        }
+        
+        .navigation-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            padding: 12px 20px;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover:not(:disabled) {
+            background: #3182ce;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+        
+        .nav-btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .classification-panel {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            margin-bottom: 20px;
+        }
+        
+        .panel-header h2 {
+            font-size: 24px;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .current-status {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #4a5568;
+            transition: all 0.3s;
+        }
+        
+        .current-status.classified {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+        
+        .greek-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .greek-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .letter-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            position: relative;
+        }
+        
+        .letter-btn:hover {
+            border-color: #4299e1;
+            background: #ebf8ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .letter-btn.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+        }
+        
+        .letter-symbol {
+            font-size: 22px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .letter-name {
+            font-size: 9px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .key-hint {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background: #667eea;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        .letter-btn.selected .key-hint {
+            background: white;
+            color: #667eea;
+        }
+        
+        .special-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .special-btn {
+            padding: 10px;
+            border: 2px solid;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .special-btn.non-char {
+            background: #fff5f5;
+            border-color: #fc8181;
+            color: #c53030;
+        }
+        
+        .special-btn.non-char:hover {
+            background: #fed7d7;
+        }
+        
+        .special-btn.skip {
+            background: #faf5ff;
+            border-color: #b794f4;
+            color: #6b46c1;
+        }
+        
+        .special-btn.skip:hover {
+            background: #e9d8fd;
+        }
+        
+        .shortcuts-help {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #4a5568;
+            line-height: 1.8;
+        }
+        
+        .shortcuts-help h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+        
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .shortcut-key {
+            background: #e2e8f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 600;
+            margin-right: 10px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .floating-actions {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        }
+        
+        .error-message {
+            background: #fed7d7;
+            border: 2px solid #fc8181;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .debug-info {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Greek Character Classification Tool</h1>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="current-index">0</span>
+                    <span class="stat-label">Current</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="total-chars">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="classified-count">0</span>
+                    <span class="stat-label">Classified</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="letters-count">0</span>
+                    <span class="stat-label">Letters</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="non-chars-count">0</span>
+                    <span class="stat-label">Non-Chars</span>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+        
+        <div class="error-message" id="error-message"></div>
+        
+        <div class="main-grid">
+            <div class="panel image-viewer">
+                <div class="image-container" id="image-container">
+                    <div class="loading-spinner" id="loading-spinner"></div>
+                    <img id="character-image" class="character-image" style="display: none;" alt="Character">
+                </div>
+                
+                <div class="image-info">
+                    <div class="info-row">
+                        <span>File:</span>
+                        <span id="filename">Loading...</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Quality:</span>
+                        <span id="quality-badge" class="quality-badge quality-high">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Size:</span>
+                        <span id="size-info">-- × --</span>
+                    </div>
+                </div>
+                
+                <div class="navigation-buttons">
+                    <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">
+                        ← Previous (A)
+                    </button>
+                    <button class="nav-btn" id="next-btn" onclick="navigate(1)">
+                        Next (D) →
+                    </button>
+                </div>
+                
+                <div class="debug-info" id="debug-info"></div>
+            </div>
+            
+            <div class="panel classification-panel">
+                <div class="panel-header">
+                    <h2>Classification</h2>
+                    <div class="current-status" id="current-status">
+                        Not Classified
+                    </div>
+                </div>
+                
+                <div class="greek-grid" id="greek-grid">
+                    <!-- Greek letters will be inserted here -->
+                </div>
+                
+                <div class="special-actions">
+                    <button class="special-btn non-char" onclick="classifyAsNonChar()">
+                        ❌ Non-Character (X)
+                    </button>
+                    <button class="special-btn skip" onclick="skipCharacter()">
+                        ⏭️ Skip (Space)
+                    </button>
+                </div>
+                
+                <div class="shortcuts-help">
+                    <h3>⌨️ Keyboard Shortcuts</h3>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">A / ←</span>
+                        <span>Previous character</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">D / →</span>
+                        <span>Next character</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">X</span>
+                        <span>Mark as non-character</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Space</span>
+                        <span>Skip current character</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <span class="shortcut-key">Letters</span>
+                        <span>Classify using mapped keys</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="floating-actions">
+        <button class="action-btn" onclick="exportClassifications()">
+            💾 Export Training Data
+        </button>
+        <button class="action-btn" onclick="clearAllData()">
+            🗑️ Clear All
+        </button>
+    </div>
+    
+    <script>
+        // Greek letter mappings
+        const greekLetters = [
+            {symbol: 'Α', name: 'ALPHA', key: 'Q'},
+            {symbol: 'Β', name: 'BETA', key: 'W'},
+            {symbol: 'Γ', name: 'GAMMA', key: 'E'},
+            {symbol: 'Δ', name: 'DELTA', key: 'R'},
+            {symbol: 'Ε', name: 'EPSILON', key: 'T'},
+            {symbol: 'Ζ', name: 'ZETA', key: 'Y'},
+            {symbol: 'Η', name: 'ETA', key: 'U'},
+            {symbol: 'Θ', name: 'THETA', key: 'I'},
+            {symbol: 'Ι', name: 'IOTA', key: 'O'},
+            {symbol: 'Κ', name: 'KAPPA', key: 'P'},
+            {symbol: 'Λ', name: 'LAMBDA', key: 'Z'},
+            {symbol: 'Μ', name: 'MU', key: 'S'},
+            {symbol: 'Ν', name: 'NU', key: 'F'},
+            {symbol: 'Ξ', name: 'XI', key: 'G'},
+            {symbol: 'Ο', name: 'OMICRON', key: 'H'},
+            {symbol: 'Π', name: 'PI', key: 'J'},
+            {symbol: 'Ρ', name: 'RHO', key: 'K'},
+            {symbol: 'Σ', name: 'SIGMA', key: 'L'},
+            {symbol: 'Τ', name: 'TAU', key: 'V'},
+            {symbol: 'Υ', name: 'UPSILON', key: 'B'},
+            {symbol: 'Φ', name: 'PHI', key: 'N'},
+            {symbol: 'Χ', name: 'CHI', key: 'M'},
+            {symbol: 'Ψ', name: 'PSI', key: '1'},
+            {symbol: 'Ω', name: 'OMEGA', key: '2'}
+        ];
+        
+        // Global state
+        let characters = [];
+        let currentIndex = 0;
+        let classifications = {};
+        let debugMode = true;
+        
+        // Load saved classifications from localStorage
+        function loadSavedClassifications() {
+            const saved = localStorage.getItem('sinaiticus_classifications');
+            if (saved) {
+                try {
+                    classifications = JSON.parse(saved);
+                    console.log('Loaded saved classifications:', Object.keys(classifications).length);
+                } catch (e) {
+                    console.error('Error loading saved classifications:', e);
+                    classifications = {};
+                }
+            }
+        }
+        
+        // Save classifications to localStorage
+        function saveClassifications() {
+            try {
+                localStorage.setItem('sinaiticus_classifications', JSON.stringify(classifications));
+                console.log('Saved classifications');
+            } catch (e) {
+                console.error('Error saving classifications:', e);
+            }
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            console.error(message);
+        }
+        
+        // Hide error message
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+        
+        // Update debug info
+        function updateDebug(info) {
+            if (debugMode) {
+                const debugDiv = document.getElementById('debug-info');
+                debugDiv.innerHTML = `<strong>Debug:</strong> ${JSON.stringify(info, null, 2)}`;
+            }
+        }
+        
+        // Load all character images
+        async function loadCharacters() {
+            const sources = [
+                '1000007196', '1000007197', '1000007198', '1000007203',
+                '1000007206', '1000007207', '1000007208', '1000007210',
+                '1000007211', '1000007212', '1000007213', '1000007214',
+                '1000007215', '1000007216'
+            ];
+            
+            console.log('Starting to load characters from sources:', sources);
+            hideError();
+            
+            for (const source of sources) {
+                try {
+                    const metadataUrl = `glyphs_improved/${source}/metadata.json`;
+                    console.log(`Fetching metadata from: ${metadataUrl}`);
+                    
+                    const response = await fetch(metadataUrl);
+                    if (!response.ok) {
+                        console.warn(`Failed to load ${source}: HTTP ${response.status}`);
+                        continue;
+                    }
+                    
+                    const metadata = await response.json();
+                    console.log(`Loaded ${metadata.length} items from ${source}`);
+                    
+                    // Add each character with full metadata
+                    metadata.forEach(item => {
+                        const charData = {
+                            id: `${source}_${item.file}`,
+                            path: `glyphs_improved/${source}/${item.file}`,
+                            filename: item.file,
+                            source: source,
+                            quality: Math.round(item.quality * 100),
+                            width: item.width,
+                            height: item.height,
+                            line: item.line || 0
+                        };
+                        characters.push(charData);
+                    });
+                    
+                } catch (error) {
+                    console.error(`Error loading ${source}:`, error);
+                    showError(`Failed to load metadata from ${source}: ${error.message}`);
+                }
+            }
+            
+            // Sort by quality (highest first)
+            characters.sort((a, b) => b.quality - a.quality);
+            
+            // Limit to top quality for initial training
+            const limit = 2000;
+            if (characters.length > limit) {
+                console.log(`Limiting to top ${limit} characters by quality`);
+                characters = characters.slice(0, limit);
+            }
+            
+            console.log(`Total characters loaded: ${characters.length}`);
+            
+            if (characters.length === 0) {
+                showError('No characters could be loaded. Please check the glyphs_improved directory.');
+                return;
+            }
+            
+            // Update UI
+            document.getElementById('total-chars').textContent = characters.length;
+            
+            // Display first character
+            displayCharacter(0);
+            updateStats();
+        }
+        
+        // Display a character
+        function displayCharacter(index) {
+            if (index < 0 || index >= characters.length) {
+                console.error('Invalid character index:', index);
+                return;
+            }
+            
+            currentIndex = index;
+            const char = characters[index];
+            
+            console.log(`Displaying character ${index}:`, char);
+            updateDebug({index, char});
+            
+            // Show loading spinner
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('character-image').style.display = 'none';
+            
+            // Load image
+            const img = document.getElementById('character-image');
+            img.onload = function() {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('character-image').style.display = 'block';
+                console.log('Image loaded successfully');
+            };
+            img.onerror = function() {
+                document.getElementById('loading-spinner').style.display = 'none';
+                console.error('Failed to load image:', char.path);
+                showError(`Failed to load image: ${char.path}`);
+            };
+            img.src = char.path;
+            
+            // Update info
+            document.getElementById('filename').textContent = char.filename;
+            document.getElementById('current-index').textContent = index + 1;
+            document.getElementById('size-info').textContent = `${char.width} × ${char.height}`;
+            
+            // Update quality badge
+            const badge = document.getElementById('quality-badge');
+            badge.textContent = `${char.quality}%`;
+            badge.className = 'quality-badge ' + 
+                (char.quality >= 80 ? 'quality-high' : 
+                 char.quality >= 60 ? 'quality-medium' : 'quality-low');
+            
+            // Update navigation buttons
+            document.getElementById('prev-btn').disabled = index === 0;
+            document.getElementById('next-btn').disabled = index === characters.length - 1;
+            
+            // Update classification status
+            updateClassificationStatus();
+        }
+        
+        // Update classification status display
+        function updateClassificationStatus() {
+            const char = characters[currentIndex];
+            const statusDiv = document.getElementById('current-status');
+            
+            // Clear selected state from all letter buttons
+            document.querySelectorAll('.letter-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            if (classifications[char.id]) {
+                const classification = classifications[char.id];
+                
+                if (classification === 'NON_CHAR') {
+                    statusDiv.textContent = '❌ Non-Character';
+                    statusDiv.className = 'current-status classified';
+                } else if (classification === 'SKIP') {
+                    statusDiv.textContent = '⏭️ Skipped';
+                    statusDiv.className = 'current-status';
+                } else {
+                    // It's a letter classification
+                    const letter = greekLetters.find(l => l.name === classification);
+                    if (letter) {
+                        statusDiv.textContent = `✅ ${letter.symbol} (${letter.name})`;
+                        statusDiv.className = 'current-status classified';
+                        
+                        // Highlight the selected letter button
+                        const btn = document.querySelector(`.letter-btn[data-name="${classification}"]`);
+                        if (btn) btn.classList.add('selected');
+                    }
+                }
+            } else {
+                statusDiv.textContent = 'Not Classified';
+                statusDiv.className = 'current-status';
+            }
+        }
+        
+        // Classify current character
+        function classifyCharacter(letterName) {
+            const char = characters[currentIndex];
+            classifications[char.id] = letterName;
+            saveClassifications();
+            updateStats();
+            updateClassificationStatus();
+            
+            // Auto-advance to next character
+            setTimeout(() => {
+                if (currentIndex < characters.length - 1) {
+                    navigate(1);
+                }
+            }, 200);
+        }
+        
+        // Classify as non-character
+        function classifyAsNonChar() {
+            classifyCharacter('NON_CHAR');
+        }
+        
+        // Skip current character
+        function skipCharacter() {
+            const char = characters[currentIndex];
+            classifications[char.id] = 'SKIP';
+            saveClassifications();
+            updateStats();
+            
+            if (currentIndex < characters.length - 1) {
+                navigate(1);
+            }
+        }
+        
+        // Navigate to previous/next character
+        function navigate(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < characters.length) {
+                displayCharacter(newIndex);
+            }
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const total = characters.length;
+            const classified = Object.keys(classifications).length;
+            const letters = Object.values(classifications).filter(
+                c => c !== 'NON_CHAR' && c !== 'SKIP'
+            ).length;
+            const nonChars = Object.values(classifications).filter(
+                c => c === 'NON_CHAR'
+            ).length;
+            
+            document.getElementById('classified-count').textContent = classified;
+            document.getElementById('letters-count').textContent = letters;
+            document.getElementById('non-chars-count').textContent = nonChars;
+            
+            // Update progress bar
+            const progress = total > 0 ? (classified / total) * 100 : 0;
+            document.getElementById('progress-bar').style.width = `${progress}%`;
+        }
+        
+        // Export classifications as JSON
+        function exportClassifications() {
+            const trainingData = [];
+            
+            Object.entries(classifications).forEach(([charId, classification]) => {
+                if (classification !== 'SKIP') {
+                    const char = characters.find(c => c.id === charId);
+                    if (char) {
+                        trainingData.push({
+                            id: charId,
+                            path: char.path,
+                            filename: char.filename,
+                            source: char.source,
+                            classification: classification,
+                            quality: char.quality,
+                            width: char.width,
+                            height: char.height,
+                            line: char.line
+                        });
+                    }
+                }
+            });
+            
+            const json = JSON.stringify(trainingData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `training_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            
+            alert(`Exported ${trainingData.length} classified characters`);
+        }
+        
+        // Clear all classifications
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all classifications? This cannot be undone.')) {
+                classifications = {};
+                saveClassifications();
+                updateStats();
+                updateClassificationStatus();
+                alert('All classifications have been cleared');
+            }
+        }
+        
+        // Initialize Greek letter grid
+        function initializeGreekGrid() {
+            const grid = document.getElementById('greek-grid');
+            grid.innerHTML = '';
+            
+            greekLetters.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'letter-btn';
+                btn.dataset.name = letter.name;
+                btn.onclick = () => classifyCharacter(letter.name);
+                
+                btn.innerHTML = `
+                    <span class="key-hint">${letter.key}</span>
+                    <span class="letter-symbol">${letter.symbol}</span>
+                    <span class="letter-name">${letter.name}</span>
+                `;
+                
+                grid.appendChild(btn);
+            });
+        }
+        
+        // Keyboard event handler
+        document.addEventListener('keydown', (e) => {
+            // Prevent default for space key
+            if (e.key === ' ') {
+                e.preventDefault();
+                skipCharacter();
+                return;
+            }
+            
+            // Navigation
+            if (e.key === 'ArrowLeft' || e.key.toUpperCase() === 'A') {
+                navigate(-1);
+                return;
+            }
+            if (e.key === 'ArrowRight' || e.key.toUpperCase() === 'D') {
+                navigate(1);
+                return;
+            }
+            
+            // Non-character
+            if (e.key.toUpperCase() === 'X') {
+                classifyAsNonChar();
+                return;
+            }
+            
+            // Letter classification
+            const key = e.key.toUpperCase();
+            const letter = greekLetters.find(l => l.key === key);
+            if (letter) {
+                classifyCharacter(letter.name);
+            }
+        });
+        
+        // Initialize application
+        function initialize() {
+            console.log('Initializing application...');
+            loadSavedClassifications();
+            initializeGreekGrid();
+            loadCharacters();
+        }
+        
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
+    </script>
+</body>
+</html>

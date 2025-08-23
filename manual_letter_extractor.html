@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manual Letter Extractor - Find Missing Greek Letters</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        h1 { margin-bottom: 10px; }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        select, input, button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #34495e;
+            color: white;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #3498db;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .missing-letters {
+            background: #e74c3c;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+        
+        .image-viewer {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            overflow: auto;
+            max-height: 80vh;
+        }
+        
+        #source-image {
+            cursor: crosshair;
+            max-width: 100%;
+        }
+        
+        .selection-box {
+            position: absolute;
+            border: 2px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+        }
+        
+        .sidebar {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .extracted-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .extracted-item {
+            background: #34495e;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .extracted-preview {
+            background: white;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+            border-radius: 4px;
+        }
+        
+        .extracted-preview canvas {
+            max-width: 100%;
+            image-rendering: pixelated;
+        }
+        
+        .letter-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .letter-btn {
+            padding: 8px;
+            background: #2ecc71;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .letter-btn:hover {
+            background: #27ae60;
+        }
+        
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .status {
+            background: #f39c12;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Manual Letter Extractor</h1>
+            <p>Extract missing Greek letters directly from source images</p>
+        </div>
+        
+        <div class="instructions">
+            <strong>Instructions:</strong>
+            1. Select a source image from the dropdown<br>
+            2. Click and drag on the image to select a letter<br>
+            3. Click the appropriate letter button to classify it<br>
+            4. Export when done to add to your training data
+        </div>
+        
+        <div class="missing-letters">
+            <strong>Missing Letters to Find:</strong>
+            Β (Beta), Ι (Iota), Ψ (Psi), Ξ (Xi), Ζ (Zeta)
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Source Image:</label>
+                <select id="source-select">
+                    <option value="">-- Select Source --</option>
+                    <option value="data/1000007196.jpg">1000007196</option>
+                    <option value="data/1000007197.jpg">1000007197</option>
+                    <option value="data/1000007198.jpg">1000007198</option>
+                    <option value="data/1000007203.jpg">1000007203</option>
+                    <option value="data/1000007206.jpg">1000007206</option>
+                    <option value="data/1000007207.jpg">1000007207</option>
+                    <option value="data/1000007208.jpg">1000007208</option>
+                    <option value="data/1000007210.jpg">1000007210</option>
+                    <option value="data/1000007211.jpg">1000007211</option>
+                    <option value="data/1000007212.jpg">1000007212</option>
+                    <option value="data/1000007213.jpg">1000007213</option>
+                    <option value="data/1000007214.jpg">1000007214</option>
+                    <option value="data/1000007215.jpg">1000007215</option>
+                    <option value="data/1000007216.jpg">1000007216</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Zoom:</label>
+                <input type="range" id="zoom-slider" min="50" max="200" value="100">
+                <span id="zoom-value">100%</span>
+            </div>
+            
+            <button onclick="exportExtractions()">Export Extracted Letters</button>
+        </div>
+        
+        <div class="workspace">
+            <div class="image-viewer">
+                <img id="source-image" style="display: none;">
+                <canvas id="canvas"></canvas>
+                <div id="selection-box" class="selection-box" style="display: none;"></div>
+            </div>
+            
+            <div class="sidebar">
+                <h3>Current Selection</h3>
+                <div id="current-preview" class="extracted-preview">
+                    <p style="color: #999;">No selection</p>
+                </div>
+                
+                <div class="letter-buttons">
+                    <button class="letter-btn" onclick="classifySelection('BETA')">Β Beta</button>
+                    <button class="letter-btn" onclick="classifySelection('IOTA')">Ι Iota</button>
+                    <button class="letter-btn" onclick="classifySelection('PSI')">Ψ Psi</button>
+                    <button class="letter-btn" onclick="classifySelection('XI')">Ξ Xi</button>
+                    <button class="letter-btn" onclick="classifySelection('ZETA')">Ζ Zeta</button>
+                    <button class="letter-btn" style="background: #95a5a6;" onclick="classifySelection('OTHER')">Other</button>
+                </div>
+                
+                <div class="status" id="status">
+                    Ready to extract
+                </div>
+                
+                <h3 style="margin-top: 20px;">Extracted Letters</h3>
+                <div id="extracted-count">0 letters extracted</div>
+                <div id="extracted-list" class="extracted-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let canvas, ctx;
+        let sourceImage;
+        let isSelecting = false;
+        let startX, startY, endX, endY;
+        let extractedLetters = [];
+        let currentSelection = null;
+        let zoom = 1.0;
+        
+        window.onload = function() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            sourceImage = document.getElementById('source-image');
+            
+            // Set up event listeners
+            document.getElementById('source-select').addEventListener('change', loadImage);
+            document.getElementById('zoom-slider').addEventListener('input', updateZoom);
+            
+            canvas.addEventListener('mousedown', startSelection);
+            canvas.addEventListener('mousemove', updateSelection);
+            canvas.addEventListener('mouseup', endSelection);
+        };
+        
+        function loadImage() {
+            const select = document.getElementById('source-select');
+            if (!select.value) return;
+            
+            sourceImage.onload = function() {
+                updateCanvas();
+            };
+            sourceImage.src = select.value;
+        }
+        
+        function updateZoom() {
+            zoom = document.getElementById('zoom-slider').value / 100;
+            document.getElementById('zoom-value').textContent = Math.round(zoom * 100) + '%';
+            updateCanvas();
+        }
+        
+        function updateCanvas() {
+            if (!sourceImage.src || sourceImage.src.includes('undefined')) return;
+            
+            canvas.width = sourceImage.width * zoom;
+            canvas.height = sourceImage.height * zoom;
+            
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height);
+        }
+        
+        function startSelection(e) {
+            if (!sourceImage.src || sourceImage.src.includes('undefined')) return;
+            
+            isSelecting = true;
+            const rect = canvas.getBoundingClientRect();
+            startX = (e.clientX - rect.left) / zoom;
+            startY = (e.clientY - rect.top) / zoom;
+        }
+        
+        function updateSelection(e) {
+            if (!isSelecting) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            endX = (e.clientX - rect.left) / zoom;
+            endY = (e.clientY - rect.top) / zoom;
+            
+            // Redraw canvas
+            updateCanvas();
+            
+            // Draw selection rectangle
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 2 / zoom;
+            ctx.strokeRect(
+                startX * zoom,
+                startY * zoom,
+                (endX - startX) * zoom,
+                (endY - startY) * zoom
+            );
+        }
+        
+        function endSelection(e) {
+            if (!isSelecting) return;
+            isSelecting = false;
+            
+            const rect = canvas.getBoundingClientRect();
+            endX = (e.clientX - rect.left) / zoom;
+            endY = (e.clientY - rect.top) / zoom;
+            
+            // Ensure coordinates are in correct order
+            const x1 = Math.min(startX, endX);
+            const y1 = Math.min(startY, endY);
+            const x2 = Math.max(startX, endX);
+            const y2 = Math.max(startY, endY);
+            
+            const width = x2 - x1;
+            const height = y2 - y1;
+            
+            if (width < 10 || height < 10) {
+                updateCanvas();
+                return; // Too small
+            }
+            
+            // Extract the selection
+            extractSelection(x1, y1, width, height);
+        }
+        
+        function extractSelection(x, y, width, height) {
+            // Create a temporary canvas for the extracted letter
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            tempCtx.drawImage(
+                sourceImage,
+                x, y, width, height,
+                0, 0, width, height
+            );
+            
+            // Store current selection
+            currentSelection = {
+                x: x,
+                y: y,
+                width: width,
+                height: height,
+                imageData: tempCanvas.toDataURL('image/png'),
+                source: document.getElementById('source-select').value
+            };
+            
+            // Show preview
+            const preview = document.getElementById('current-preview');
+            preview.innerHTML = '';
+            const previewCanvas = document.createElement('canvas');
+            previewCanvas.width = width;
+            previewCanvas.height = height;
+            const previewCtx = previewCanvas.getContext('2d');
+            previewCtx.drawImage(tempCanvas, 0, 0);
+            preview.appendChild(previewCanvas);
+            
+            document.getElementById('status').textContent = 'Selection ready - choose a letter to classify';
+        }
+        
+        function classifySelection(letterName) {
+            if (!currentSelection) {
+                alert('Please select a letter first');
+                return;
+            }
+            
+            // Add to extracted letters
+            extractedLetters.push({
+                ...currentSelection,
+                classification: letterName,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Update UI
+            updateExtractedList();
+            
+            // Clear selection
+            currentSelection = null;
+            document.getElementById('current-preview').innerHTML = '<p style="color: #999;">No selection</p>';
+            updateCanvas();
+            
+            document.getElementById('status').textContent = `Added ${letterName}. Total: ${extractedLetters.length} letters`;
+        }
+        
+        function updateExtractedList() {
+            const list = document.getElementById('extracted-list');
+            const count = document.getElementById('extracted-count');
+            
+            count.textContent = `${extractedLetters.length} letters extracted`;
+            
+            // Count by type
+            const counts = {};
+            extractedLetters.forEach(letter => {
+                counts[letter.classification] = (counts[letter.classification] || 0) + 1;
+            });
+            
+            list.innerHTML = Object.entries(counts).map(([name, count]) => 
+                `<div class="extracted-item">${name}: ${count} samples</div>`
+            ).join('');
+        }
+        
+        function exportExtractions() {
+            if (extractedLetters.length === 0) {
+                alert('No letters extracted yet');
+                return;
+            }
+            
+            // Create review data format
+            const reviewData = extractedLetters.map((letter, index) => ({
+                id: `manual_${Date.now()}_${index}`,
+                path: `manual_extractions/${letter.classification}_${index}.png`,
+                filename: `${letter.classification}_${index}.png`,
+                source: letter.source.split('/').pop().replace('.jpg', ''),
+                classification: letter.classification,
+                corrected: true,
+                quality: 100, // Manual extraction is high quality
+                width: letter.width,
+                height: letter.height,
+                imageData: letter.imageData // Include base64 image data
+            }));
+            
+            // Download as JSON
+            const json = JSON.stringify(reviewData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `manual_extractions_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            
+            alert(`Exported ${extractedLetters.length} manually extracted letters`);
+        }
+    </script>
+</body>
+</html>

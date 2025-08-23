@@ -1,0 +1,12 @@
+{
+  "total_extracted": 3134,
+  "saved": 3134,
+  "avg_quality": 0.7395976753861719,
+  "quality_distribution": {
+    "excellent": 1895,
+    "good": 782,
+    "fair": 457,
+    "poor": 0
+  },
+  "omega_detected": 0
+}

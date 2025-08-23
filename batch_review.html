@@ -1,0 +1,3621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Character Review - Codex Sinaiticus</title>
+    <style>
+        * { 
+            box-sizing: border-box; 
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .control-group input,
+        .control-group select {
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #4299e1;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 16px;
+        }
+        
+        .review-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        
+        .review-table {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d3748;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+        }
+        
+        tr:hover {
+            background: #f7fafc;
+        }
+        
+        .char-image {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 5px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .char-image:hover {
+            transform: scale(1.5);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 100;
+            position: relative;
+        }
+        
+        .prediction {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a5568;
+            text-align: center;
+        }
+        
+        .confidence {
+            font-size: 12px;
+            color: #718096;
+            text-align: center;
+            margin-top: 4px;
+        }
+        
+        .letter-select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .letter-select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .letter-select.changed {
+            background: #fef5e7;
+            border-color: #f39c12;
+        }
+        
+        .letter-select.non-letter {
+            background: #fee;
+            border-color: #f56565;
+        }
+        
+        .quality-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .quality-high {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .quality-medium {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .quality-low {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            font-size: 24px;
+            color: #2d3748;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .enlarged-image {
+            max-width: 300px;
+            max-height: 300px;
+            margin: 20px auto;
+            display: block;
+            image-rendering: pixelated;
+            border: 2px solid #e2e8f0;
+            padding: 10px;
+            background: #f7fafc;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 60px;
+            color: #718096;
+        }
+        
+        .no-data h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .cluster-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .cluster-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .cluster-item.selected {
+            border-color: #667eea;
+            background: #ebf4ff;
+        }
+        
+        .cluster-thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            margin-bottom: 5px;
+        }
+        
+        .cluster-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .cluster-count {
+            font-size: 10px;
+            color: #718096;
+        }
+        
+        /* Manuscript Viewer Overlay */
+        .manuscript-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10000;
+            overflow: auto;
+        }
+        
+        .manuscript-viewer {
+            position: relative;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            max-width: 95%;
+            padding: 20px;
+        }
+        
+        .manuscript-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .manuscript-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .manuscript-canvas-container {
+            position: relative;
+            display: inline-block;
+            margin: 0 auto;
+            cursor: crosshair;
+            text-align: center;
+        }
+        
+        #manuscript-container {
+            text-align: center;
+        }
+        
+        .manuscript-canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .char-box {
+            position: absolute;
+            border: 2px solid #48bb78;
+            background: rgba(72, 187, 120, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .char-box:hover {
+            border-color: #f56565;
+            background: rgba(245, 101, 101, 0.2);
+            z-index: 100;
+        }
+        
+        .char-box.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.3);
+            border-width: 3px;
+        }
+        
+        .manuscript-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+        
+        .close-manuscript {
+            padding: 10px 20px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ Batch Character Review Tool</h1>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Sample Size:</label>
+                    <input type="number" id="sample-size" value="2000" min="10" max="30000" step="10">
+                </div>
+                
+                <div class="control-group">
+                    <label>Source Image:</label>
+                    <select id="source-select" style="padding: 5px; width: 150px;">
+                        <option value="all">All Sources</option>
+                    </select>
+                    <button class="btn" onclick="loadBySource()" style="background: #4299e1; margin-left: 10px;">Load Source</button>
+                    <button class="btn" onclick="loadAllFromSource()" style="background: #38a169; margin-left: 5px;">Load ALL</button>
+                </div>
+                
+                <div class="control-group">
+                    <label>Quality Filter:</label>
+                    <select id="quality-filter">
+                        <option value="all">All</option>
+                        <option value="high">High (80%+)</option>
+                        <option value="medium">Medium (60-80%)</option>
+                        <option value="low">Low (<60%)</option>
+                    </select>
+                </div>
+                
+                <button class="btn" onclick="loadSamples()">Load Samples</button>
+                <button class="btn" onclick="loadKMeansClusters()" style="background: #2d3748;">Load K-Means Clusters</button>
+                <button class="btn" onclick="showAllCharacters()" style="background: #48bb78;">Show All</button>
+                <button class="btn btn-success" onclick="saveReview()">Save Review</button>
+                <button class="btn btn-success" onclick="showClassificationSummary()">Show Summary</button>
+                <button class="btn" onclick="loadSavedFile()" style="background: #5a67d8;">📂 Load Saved File</button>
+                <button class="btn" onclick="createTestFont()" style="background: #ed8936;">🔤 Create Test Font</button>
+                <button class="btn" onclick="showLetterSamplesMenu()" style="background: #9f7aea;">📝 Manage Letter Samples</button>
+                <button class="btn" onclick="openManuscriptViewer()" style="background: #16a085;">📜 View Manuscript</button>
+                <button class="btn" onclick="clearSpecificLetter()" style="background: #e74c3c;">Clear One Letter</button>
+                <button class="btn" onclick="forceRefreshState()" style="background: #9b59b6;">🔄 Refresh State</button>
+                <button class="btn btn-danger" onclick="clearAll()">Clear All</button>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <span class="stat-label">Total Samples:</span>
+                    <span class="stat-value" id="total-samples">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Reviewed:</span>
+                    <span class="stat-value" id="reviewed-count">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Corrections:</span>
+                    <span class="stat-value" id="corrections-count">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Non-letters:</span>
+                    <span class="stat-value" id="non-letters-count">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Letters Found:</span>
+                    <span class="stat-value" id="letters-found">0/24</span>
+                </div>
+            </div>
+            
+            <div id="missing-letters" style="margin-top: 15px; padding: 10px; background: #fef5e7; border-radius: 8px; display: none;">
+                <strong>Missing Letters:</strong> <span id="missing-letters-list"></span>
+            </div>
+        </div>
+        
+        <div class="review-panel">
+            <div id="loading-container" class="loading" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Loading samples...</p>
+            </div>
+            
+            <div id="no-data-container" class="no-data">
+                <h3>No samples loaded</h3>
+                <p>Click "Load Samples" to begin reviewing characters</p>
+            </div>
+            
+            <div id="review-container" style="display: none;">
+                <div class="review-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="80">Image</th>
+                                <th width="100">Prediction</th>
+                                <th width="150">Correction</th>
+                                <th width="100">Quality</th>
+                                <th width="120">Source</th>
+                                <th width="100">Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="review-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Image preview modal -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Character Detail</h2>
+            </div>
+            <div class="modal-body">
+                <img id="modal-image" class="enlarged-image" alt="Character">
+                <div id="modal-info"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Letter samples modal -->
+    <div id="letter-samples-modal" class="modal">
+        <div class="modal-content" style="max-width: 90%; width: 1200px; max-height: 90vh;">
+            <div class="modal-header">
+                <h2 id="letter-samples-title">Letter Samples</h2>
+                <p id="letter-samples-count" style="color: #718096; margin-top: 5px;">0 samples</p>
+            </div>
+            <div class="modal-body" style="overflow-y: auto; max-height: 60vh;">
+                <div id="letter-samples-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 15px; padding: 20px;">
+                    <!-- Letter samples will be added here dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeLetterSamplesModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cluster selection modal -->
+    <div id="cluster-modal" class="modal">
+        <div class="modal-content" style="max-width: 90%; width: 1200px; max-height: 90vh;">
+            <div class="modal-header">
+                <h2>Select Cluster to Review</h2>
+                <p style="color: #718096; margin-top: 5px;">Click on a cluster to load characters for review</p>
+                <div style="margin-top: 10px;">
+                    <button class="btn btn-small" onclick="regenerateClusters()" style="background: #4299e1;">
+                        🔄 Regenerate Clusters
+                    </button>
+                    <label style="margin-left: 15px; color: #4a5568; font-size: 14px;">
+                        K value: 
+                        <input type="number" id="k-value" value="200" min="10" max="500" step="10" 
+                               style="width: 60px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                    </label>
+                    <label style="margin-left: 10px; color: #4a5568; font-size: 14px;">
+                        Min size: 
+                        <input type="number" id="min-size-filter" value="30" min="15" max="50" step="5" 
+                               style="width: 50px; padding: 4px; border: 1px solid #e2e8f0; border-radius: 4px;"
+                               title="Minimum width/height in pixels to include in clustering">
+                    </label>
+                    <button class="btn btn-small" onclick="regenerateWithNewK()" style="background: #48bb78; margin-left: 5px;">
+                        Apply Filters
+                    </button>
+                    <span id="cluster-info" style="margin-left: 10px; color: #718096; font-size: 14px;"></span>
+                </div>
+            </div>
+            <div class="modal-body" style="max-height: calc(90vh - 150px); overflow-y: auto;">
+                <div id="cluster-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; padding: 10px;">
+                    <!-- Clusters will be added here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeClusterModal()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Feature cache to speed up similarity searches
+        const featureCache = new Map();
+        
+        // Greek letters for dropdown options
+        const greekLetters = [
+            {symbol: 'Α', name: 'ALPHA'},
+            {symbol: 'Β', name: 'BETA'},
+            {symbol: 'Γ', name: 'GAMMA'},
+            {symbol: 'Δ', name: 'DELTA'},
+            {symbol: 'Ε', name: 'EPSILON'},
+            {symbol: 'Ζ', name: 'ZETA'},
+            {symbol: 'Η', name: 'ETA'},
+            {symbol: 'Θ', name: 'THETA'},
+            {symbol: 'Ι', name: 'IOTA'},
+            {symbol: 'Κ', name: 'KAPPA'},
+            {symbol: 'Λ', name: 'LAMBDA'},
+            {symbol: 'Μ', name: 'MU'},
+            {symbol: 'Ν', name: 'NU'},
+            {symbol: 'Ξ', name: 'XI'},
+            {symbol: 'Ο', name: 'OMICRON'},
+            {symbol: 'Π', name: 'PI'},
+            {symbol: 'Ρ', name: 'RHO'},
+            {symbol: 'Σ', name: 'SIGMA'},
+            {symbol: 'Τ', name: 'TAU'},
+            {symbol: 'Υ', name: 'UPSILON'},
+            {symbol: 'Φ', name: 'PHI'},
+            {symbol: 'Χ', name: 'CHI'},
+            {symbol: 'Ψ', name: 'PSI'},
+            {symbol: 'Ω', name: 'OMEGA'}
+        ];
+        
+        // Global state
+        let allCharacters = [];
+        let currentSamples = [];
+        let predictions = {};
+        let corrections = {};
+        let seenLetters = new Set();
+        let allClassifications = {}; // Store all classifications across sessions
+        let letterExampleCounts = {}; // Track how many examples we have per letter
+        let clusterData = null; // Store cluster information
+        let clusterCentroids = null; // Store cluster centroids
+        
+        // Extract detailed features from an image for similarity matching
+        async function extractDetailedFeatures(imagePath, gridSize = 32) {
+            // Check cache first
+            const cacheKey = `${imagePath}_${gridSize}`;
+            if (featureCache.has(cacheKey)) {
+                console.log(`Using cached features for ${imagePath}`);
+                return featureCache.get(cacheKey);
+            }
+            
+            // Extract features if not cached
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Use larger grid for more detailed features
+                    canvas.width = gridSize;
+                    canvas.height = gridSize;
+                    
+                    // Clear canvas with white background
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, gridSize, gridSize);
+                    
+                    // Center and scale the image to fit
+                    const padding = gridSize * 0.1; // 10% padding
+                    const maxSize = gridSize - (2 * padding);
+                    const scale = Math.min(maxSize / img.width, maxSize / img.height);
+                    const w = img.width * scale;
+                    const h = img.height * scale;
+                    const x = (gridSize - w) / 2;
+                    const y = (gridSize - h) / 2;
+                    
+                    ctx.drawImage(img, x, y, w, h);
+                    
+                    // Get pixel data
+                    const imageData = ctx.getImageData(0, 0, gridSize, gridSize);
+                    const pixels = imageData.data;
+                    
+                    // Extract features - invert so black pixels are 1, white are 0
+                    const features = [];
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        // Get grayscale value
+                        const gray = (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
+                        // Invert: black text should be 1, white background should be 0
+                        features.push(1 - (gray / 255));
+                    }
+                    
+                    // Cache the features
+                    featureCache.set(cacheKey, features);
+                    console.log(`Cached features for ${imagePath} (cache size: ${featureCache.size})`);
+                    
+                    resolve(features);
+                };
+                img.src = imagePath;
+            });
+        }
+        
+        // Find similar characters using distance metrics
+        async function findSimilarCharacters(targetCharId, buttonElement) {
+            console.log('Finding similar for ID:', targetCharId);
+            
+            // Temporary: Clear cache to use new inverted feature extraction
+            // TODO: Remove this after testing
+            if (featureCache.size > 0) {
+                console.log('Clearing feature cache to use new extraction algorithm');
+                featureCache.clear();
+            }
+            
+            // Immediately disable the button to prevent double-clicks
+            let originalButtonText = '';
+            if (buttonElement) {
+                originalButtonText = buttonElement.innerHTML;
+                buttonElement.innerHTML = '⏳ Loading...';
+                buttonElement.disabled = true;
+                buttonElement.style.pointerEvents = 'none'; // Extra protection against clicks
+            }
+            
+            // The IDs are strings like "letter_0", so we just use them directly
+            const charId = targetCharId;
+            
+            const targetChar = currentSamples.find(c => c.id === charId);
+            if (!targetChar) {
+                console.error('Target character not found in currentSamples. Looking in allCharacters...');
+                // Try to find in allCharacters if loaded
+                if (allCharacters.length > 0) {
+                    const targetInAll = allCharacters.find(c => c.id === charId);
+                    if (targetInAll) {
+                        console.log('Found in allCharacters');
+                        await findSimilarFromAllCharacters(targetInAll, buttonElement, originalButtonText);
+                        return;
+                    }
+                }
+                alert('Character not found. Please try loading all characters first.');
+                // Restore button
+                if (buttonElement) {
+                    buttonElement.innerHTML = originalButtonText;
+                    buttonElement.disabled = false;
+                    buttonElement.style.pointerEvents = ''; // Re-enable pointer events
+                }
+                return;
+            }
+            
+            await findSimilarFromAllCharacters(targetChar, buttonElement, originalButtonText);
+        }
+        
+        // Helper function to find similar characters
+        async function findSimilarFromAllCharacters(targetChar, buttonElement, originalButtonText) {
+            
+            // Show loading - keep the top loading indicator too
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('loading-container').querySelector('p').textContent = 
+                'Finding similar characters...';
+            
+            // Load all characters if needed
+            if (allCharacters.length === 0) {
+                console.log('Loading all characters first...');
+                await loadAllCharacters();
+            }
+            
+            console.log(`Finding characters similar to ID ${targetChar.id}, total chars: ${allCharacters.length}`);
+            
+            // Extract detailed features from target
+            const targetFeatures = await extractDetailedFeatures(targetChar.path, 32);
+            console.log('Target features extracted, length:', targetFeatures.length);
+            
+            // Calculate distances to all other characters
+            const similarities = [];
+            const batchSize = 50;
+            
+            for (let i = 0; i < allCharacters.length; i += batchSize) {
+                const batch = allCharacters.slice(i, Math.min(i + batchSize, allCharacters.length));
+                
+                // Process batch in parallel
+                const batchResults = await Promise.all(
+                    batch.map(async (char) => {
+                        const features = await extractDetailedFeatures(char.path, 32);
+                        
+                        // Calculate Euclidean distance
+                        let distance = 0;
+                        for (let j = 0; j < features.length; j++) {
+                            distance += Math.pow(features[j] - targetFeatures[j], 2);
+                        }
+                        distance = Math.sqrt(distance);
+                        
+                        return {
+                            char: char,
+                            distance: distance
+                        };
+                    })
+                );
+                
+                similarities.push(...batchResults);
+                
+                // Update progress
+                if ((i + batchSize) % 500 === 0 || i + batchSize >= allCharacters.length) {
+                    document.getElementById('loading-container').querySelector('p').textContent = 
+                        `Comparing features: ${Math.min(i + batchSize, allCharacters.length)}/${allCharacters.length}`;
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+            }
+            
+            console.log('Total similarities calculated:', similarities.length);
+            
+            // Sort by similarity (smallest distance first)
+            similarities.sort((a, b) => a.distance - b.distance);
+            
+            // Take top 200 most similar (excluding the target itself)
+            const similar = similarities
+                .filter(s => s.char.id !== targetChar.id)
+                .slice(0, 200)
+                .map(s => s.char);
+            
+            console.log('Similar characters found:', similar.length);
+            
+            // Update current samples with similar characters
+            currentSamples = similar;
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display similar characters
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            // Restore button state
+            if (buttonElement && originalButtonText) {
+                buttonElement.innerHTML = originalButtonText;
+                buttonElement.disabled = false;
+                buttonElement.style.pointerEvents = ''; // Re-enable pointer events
+            }
+            
+            updateStats();
+            
+            alert(`Found ${similar.length} characters similar to the selected one.\nThey are sorted by visual similarity.`);
+        }
+        
+        // Extract image features for clustering
+        async function extractImageFeatures(imagePath) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    // Resize to standard size for feature extraction
+                    const size = 16; // 16x16 grid
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, size, size);
+                    
+                    const imageData = ctx.getImageData(0, 0, size, size);
+                    const data = imageData.data;
+                    
+                    // Create feature vector from pixel values
+                    const features = [];
+                    for (let i = 0; i < data.length; i += 4) {
+                        // Use grayscale value as feature
+                        const gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        features.push(gray / 255); // Normalize to 0-1
+                    }
+                    
+                    resolve(features);
+                };
+                img.onerror = () => {
+                    // Return empty features on error
+                    const size = 16;
+                    resolve(new Array(size * size).fill(0));
+                };
+                img.src = imagePath;
+            });
+        }
+        
+        // Simple K-means clustering implementation
+        function kMeansClustering(data, k, maxIterations = 50) {
+            const n = data.length;
+            const d = data[0].length;
+            
+            // Initialize centroids randomly from data points
+            const centroids = [];
+            const usedIndices = new Set();
+            while (centroids.length < k && centroids.length < n) {
+                const idx = Math.floor(Math.random() * n);
+                if (!usedIndices.has(idx)) {
+                    usedIndices.add(idx);
+                    centroids.push([...data[idx]]);
+                }
+            }
+            
+            // Assign clusters
+            const assignments = new Array(n);
+            
+            for (let iter = 0; iter < maxIterations; iter++) {
+                // Assign each point to nearest centroid
+                let changed = false;
+                for (let i = 0; i < n; i++) {
+                    let minDist = Infinity;
+                    let minIdx = 0;
+                    
+                    for (let j = 0; j < centroids.length; j++) {
+                        let dist = 0;
+                        for (let d = 0; d < data[i].length; d++) {
+                            dist += Math.pow(data[i][d] - centroids[j][d], 2);
+                        }
+                        if (dist < minDist) {
+                            minDist = dist;
+                            minIdx = j;
+                        }
+                    }
+                    
+                    if (assignments[i] !== minIdx) {
+                        changed = true;
+                        assignments[i] = minIdx;
+                    }
+                }
+                
+                if (!changed) break;
+                
+                // Update centroids
+                for (let j = 0; j < centroids.length; j++) {
+                    const clusterPoints = [];
+                    for (let i = 0; i < n; i++) {
+                        if (assignments[i] === j) {
+                            clusterPoints.push(data[i]);
+                        }
+                    }
+                    
+                    if (clusterPoints.length > 0) {
+                        // Calculate mean
+                        for (let d = 0; d < centroids[j].length; d++) {
+                            centroids[j][d] = clusterPoints.reduce((sum, p) => sum + p[d], 0) / clusterPoints.length;
+                        }
+                    }
+                }
+            }
+            
+            return { assignments, centroids };
+        }
+        
+        // Load all unique sources from the manifest
+        async function loadSources() {
+            try {
+                const response = await fetch('letters_for_review/manifest.json');
+                const data = await response.json();
+                
+                // Get unique sources
+                const sources = new Set();
+                data.letters.forEach(letter => {
+                    if (letter.source) {
+                        sources.add(letter.source);
+                    }
+                });
+                
+                // Populate dropdown
+                const sourceSelect = document.getElementById('source-select');
+                sourceSelect.innerHTML = '<option value="all">All Sources</option>';
+                
+                // Sort sources and add to dropdown
+                Array.from(sources).sort().forEach(source => {
+                    const option = document.createElement('option');
+                    option.value = source;
+                    option.textContent = `Source ${source}`;
+                    sourceSelect.appendChild(option);
+                });
+                
+                console.log(`Found ${sources.size} unique sources`);
+            } catch (error) {
+                console.error('Error loading sources:', error);
+            }
+        }
+        
+        // Load characters by source
+        async function loadBySource() {
+            const source = document.getElementById('source-select').value;
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            // Filter by source
+            let filtered;
+            if (source === 'all') {
+                filtered = [...allCharacters];
+            } else {
+                filtered = allCharacters.filter(c => c.source === source);
+            }
+            
+            console.log(`Source "${source}": ${filtered.length} characters`);
+            
+            // Sort by size
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                return sizeB - sizeA;
+            });
+            
+            // Take sample
+            currentSamples = filtered.slice(0, Math.min(sampleSize, filtered.length));
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            alert(`Source "${source}":\n${filtered.length} total characters\nShowing ${currentSamples.length}`);
+        }
+        
+        // Load ALL characters from selected source (no limit)
+        async function loadAllFromSource() {
+            const source = document.getElementById('source-select').value;
+            
+            // Show loading with message
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('loading-container').querySelector('p').textContent = 
+                `Loading ALL characters from ${source}...`;
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                console.log('Loading all characters for first time...');
+                await loadAllCharacters();
+            }
+            
+            console.log(`Total characters loaded: ${allCharacters.length}`);
+            
+            // Filter by source
+            let filtered;
+            if (source === 'all') {
+                filtered = [...allCharacters];
+                console.log('Loading ALL sources');
+            } else {
+                filtered = allCharacters.filter(c => c.source === source);
+                console.log(`Filtering for source ${source}`);
+            }
+            
+            console.log(`After filtering - Source "${source}": ${filtered.length} characters`);
+            
+            // Sort by size
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                return sizeB - sizeA;
+            });
+            
+            // Take ALL - no limit
+            currentSamples = [...filtered];  // Make sure we copy the array
+            
+            console.log(`currentSamples length: ${currentSamples.length}`);
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('loading-container').querySelector('p').textContent = 'Loading samples...';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            // More detailed alert
+            if (source === 'all') {
+                alert(`Loading ALL sources:\n${currentSamples.length} total characters\nThis may take a moment to display...`);
+            } else {
+                alert(`Source "${source}":\nShowing ALL ${currentSamples.length} characters\nThis may take a moment to display...`);
+            }
+        }
+        
+        // Load all available characters
+        async function loadAllCharacters() {
+            // Don't reload if already loaded properly (should be thousands of characters)
+            if (allCharacters.length > 1000) {
+                console.log(`Already have ${allCharacters.length} characters loaded`);
+                return;
+            }
+            
+            // Load from new extracted letters
+            try {
+                const response = await fetch('letters_for_review/manifest.json');
+                const data = await response.json();
+                
+                allCharacters = [];
+                
+                console.log(`Loading ${data.letters.length} characters from manifest...`);
+                
+                data.letters.forEach(item => {
+                    allCharacters.push({
+                        id: `letter_${item.id}`,
+                        path: `letters_for_review/${item.filename}`,
+                        filename: item.filename,
+                        source: item.source || 'extracted',
+                        quality: 85, // Default quality since new extraction doesn't have quality scores
+                        width: item.width || 40,
+                        height: item.height || 40,
+                        line: 0,
+                        strategy: item.strategy || 'unknown'
+                    });
+                });
+                
+                console.log(`Loaded ${allCharacters.length} characters total`);
+            } catch (error) {
+                // Fallback to direct file listing
+                console.log('Loading letters directly...');
+                allCharacters = [];
+                for (let i = 0; i < 3274; i++) {
+                    const filename = `letter_${String(i).padStart(5, '0')}.png`;
+                    allCharacters.push({
+                        id: `letter_${i}`,
+                        path: `letters_for_review/${filename}`,
+                        filename: filename,
+                        source: 'extracted',
+                        quality: 85,
+                        width: 40,
+                        height: 40,
+                        line: 0
+                    });
+                }
+            }
+            
+            // Sort by size (larger first, more likely to be complete letters)
+            allCharacters.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+            
+            console.log(`Loaded ${allCharacters.length} total characters from new extraction`);
+        }
+        
+        // Load samples based on current settings
+        async function loadSamples() {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            const qualityFilter = document.getElementById('quality-filter').value;
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            // Filter by size (to get actual letters, not noise)
+            let filtered = allCharacters.filter(c => {
+                // Filter out tiny fragments - letters should be at least 20x20
+                const minSize = 20;
+                const maxSize = 100;
+                const aspectRatio = c.width / c.height;
+                
+                return c.width >= minSize && 
+                       c.height >= minSize &&
+                       c.width <= maxSize &&
+                       c.height <= maxSize &&
+                       aspectRatio >= 0.3 &&  // Not too thin
+                       aspectRatio <= 3.0;     // Not too wide
+            });
+            
+            // Note: Quality filter removed as it wasn't effective
+            if (qualityFilter === 'high') {
+                // Keep for backwards compatibility but don't filter
+            } else if (qualityFilter === 'medium') {
+                // Keep for backwards compatibility but don't filter
+            } else if (qualityFilter === 'low') {
+                // Keep for backwards compatibility but don't filter
+            }
+            
+            // Sort by quality and size (bigger and higher quality first)
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                const scoreA = a.quality * Math.sqrt(sizeA);
+                const scoreB = b.quality * Math.sqrt(sizeB);
+                return scoreB - scoreA;
+            });
+            
+            // Random sample from top candidates
+            const topCandidates = filtered.slice(0, Math.min(filtered.length, sampleSize * 3));
+            currentSamples = [];
+            const indices = new Set();
+            while (currentSamples.length < Math.min(sampleSize, topCandidates.length)) {
+                const idx = Math.floor(Math.random() * topCandidates.length);
+                if (!indices.has(idx)) {
+                    indices.add(idx);
+                    currentSamples.push({...topCandidates[idx]});
+                }
+            }
+            
+            // Clear previous predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+        }
+        
+        let displayedInTable = 0;
+        const tablePageSize = 100;
+        
+        // Display samples in table
+        function displaySamples(append = false) {
+            const tbody = document.getElementById('review-tbody');
+            if (!append) {
+                tbody.innerHTML = '';
+                displayedInTable = 0;
+            }
+            
+            const startIdx = append ? displayedInTable : 0;
+            const endIdx = Math.min(startIdx + tablePageSize, currentSamples.length);
+            
+            // Sort samples: letters first (alphabetically), then non-letters
+            const sorted = [...currentSamples].slice(startIdx, endIdx).sort((a, b) => {
+                const predA = predictions[a.id] || corrections[a.id];
+                const predB = predictions[b.id] || corrections[b.id];
+                
+                if (predA === 'NON_LETTER' && predB !== 'NON_LETTER') return 1;
+                if (predA !== 'NON_LETTER' && predB === 'NON_LETTER') return -1;
+                if (predA && predB && predA !== 'NON_LETTER' && predB !== 'NON_LETTER') {
+                    return predA.localeCompare(predB);
+                }
+                return 0;
+            });
+            
+            sorted.forEach((char, index) => {
+                const row = document.createElement('tr');
+                
+                // Image cell
+                const imgCell = document.createElement('td');
+                const img = document.createElement('img');
+                img.src = char.path;
+                img.className = 'char-image';
+                img.onclick = () => showImageModal(char);
+                imgCell.appendChild(img);
+                row.appendChild(imgCell);
+                
+                // Prediction cell
+                const predCell = document.createElement('td');
+                const prediction = predictions[char.id];
+                if (prediction) {
+                    const letter = greekLetters.find(l => l.name === prediction);
+                    if (letter) {
+                        predCell.innerHTML = `
+                            <div class="prediction">${letter.symbol}</div>
+                            <div class="confidence">${letter.name}</div>
+                        `;
+                    } else if (prediction === 'NON_LETTER') {
+                        predCell.innerHTML = `
+                            <div class="prediction" style="color: #f56565;">✗</div>
+                            <div class="confidence">Non-letter</div>
+                        `;
+                    } else {
+                        predCell.innerHTML = `<div class="prediction">?</div>`;
+                    }
+                } else {
+                    predCell.innerHTML = `<div class="prediction" style="color: #cbd5e0;">—</div>`;
+                }
+                row.appendChild(predCell);
+                
+                // Correction dropdown cell
+                const correctionCell = document.createElement('td');
+                const select = document.createElement('select');
+                select.className = 'letter-select';
+                select.id = `select-${char.id}`;
+                select.onchange = () => handleCorrectionChange(char.id, select.value);
+                
+                // Add empty option
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '-- Select --';
+                select.appendChild(emptyOption);
+                
+                // Add letter options
+                greekLetters.forEach(letter => {
+                    const option = document.createElement('option');
+                    option.value = letter.name;
+                    option.textContent = `${letter.symbol} - ${letter.name}`;
+                    select.appendChild(option);
+                });
+                
+                // Add non-letter option
+                const nonLetterOption = document.createElement('option');
+                nonLetterOption.value = 'NON_LETTER';
+                nonLetterOption.textContent = '✗ Non-letter';
+                select.appendChild(nonLetterOption);
+                
+                // Set current value
+                const currentValue = corrections[char.id] || predictions[char.id] || '';
+                select.value = currentValue;
+                
+                // Style based on state
+                if (corrections[char.id]) {
+                    select.className = 'letter-select changed';
+                }
+                if (currentValue === 'NON_LETTER') {
+                    select.className = 'letter-select non-letter';
+                }
+                
+                correctionCell.appendChild(select);
+                row.appendChild(correctionCell);
+                
+                // Quality cell
+                const qualityCell = document.createElement('td');
+                const qualityClass = char.quality >= 80 ? 'quality-high' : 
+                                    char.quality >= 60 ? 'quality-medium' : 'quality-low';
+                qualityCell.innerHTML = `<span class="quality-badge ${qualityClass}">${char.quality}%</span>`;
+                row.appendChild(qualityCell);
+                
+                // Source cell
+                const sourceCell = document.createElement('td');
+                sourceCell.textContent = char.source.substring(char.source.length - 4);
+                row.appendChild(sourceCell);
+                
+                // Size cell
+                const sizeCell = document.createElement('td');
+                sizeCell.textContent = `${char.width}×${char.height}`;
+                row.appendChild(sizeCell);
+                
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.innerHTML = `
+                    <div class="actions">
+                        <button class="btn btn-small" style="background: #9f7aea;" onclick="findSimilarCharacters('${char.id}', this)" title="Find similar characters">🔍 Similar</button>
+                        <button class="btn btn-small" onclick="removeCharacter('${char.id}')">Remove</button>
+                    </div>
+                `;
+                row.appendChild(actionsCell);
+                
+                tbody.appendChild(row);
+            });
+            
+            displayedInTable = endIdx;
+            
+            // Add Load More button if needed
+            const loadMoreContainer = document.getElementById('load-more-container');
+            if (loadMoreContainer) {
+                loadMoreContainer.remove();
+            }
+            
+            if (displayedInTable < currentSamples.length) {
+                const container = document.createElement('div');
+                container.id = 'load-more-container';
+                container.style.textAlign = 'center';
+                container.style.padding = '20px';
+                container.innerHTML = `
+                    <button class="btn btn-secondary" onclick="displaySamples(true)">
+                        Load More (${currentSamples.length - displayedInTable} remaining)
+                    </button>
+                `;
+                document.getElementById('review-container').appendChild(container);
+            }
+        }
+        
+        // Handle correction changes
+        function handleCorrectionChange(charId, value) {
+            const previousValue = allClassifications[charId];
+            
+            if (value) {
+                corrections[charId] = value;
+                allClassifications[charId] = value; // Store globally
+                
+                // Remove from previous letter's count
+                if (previousValue && previousValue !== 'NON_LETTER' && previousValue !== 'UNCLASSIFIED') {
+                    const prevArray = letterExampleCounts[previousValue];
+                    if (prevArray) {
+                        const index = prevArray.indexOf(charId);
+                        if (index > -1) {
+                            prevArray.splice(index, 1);
+                        }
+                        // If no more examples, remove the letter entirely
+                        if (prevArray.length === 0) {
+                            delete letterExampleCounts[previousValue];
+                            seenLetters.delete(previousValue);
+                        }
+                    }
+                }
+                
+                // Add to new letter's count
+                if (value !== 'NON_LETTER' && value !== 'UNCLASSIFIED') {
+                    if (!letterExampleCounts[value]) {
+                        letterExampleCounts[value] = [];
+                    }
+                    if (!letterExampleCounts[value].includes(charId)) {
+                        letterExampleCounts[value].push(charId);
+                    }
+                    seenLetters.add(value);
+                }
+                
+                // Update select styling
+                const select = document.getElementById(`select-${charId}`);
+                if (value === 'NON_LETTER') {
+                    select.className = 'letter-select non-letter';
+                } else if (value !== predictions[charId]) {
+                    select.className = 'letter-select changed';
+                } else {
+                    select.className = 'letter-select';
+                }
+            } else {
+                // Removing classification
+                if (previousValue && previousValue !== 'NON_LETTER' && previousValue !== 'UNCLASSIFIED') {
+                    const prevArray = letterExampleCounts[previousValue];
+                    if (prevArray) {
+                        const index = prevArray.indexOf(charId);
+                        if (index > -1) {
+                            prevArray.splice(index, 1);
+                        }
+                        if (prevArray.length === 0) {
+                            delete letterExampleCounts[previousValue];
+                            seenLetters.delete(previousValue);
+                        }
+                    }
+                }
+                delete corrections[charId];
+                delete allClassifications[charId];
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('all_classifications', JSON.stringify(allClassifications));
+            localStorage.setItem('letter_counts', JSON.stringify(letterExampleCounts));
+            
+            // Force update stats to refresh missing letters display
+            updateStats();
+            
+            console.log('After classification change:');
+            console.log('  seenLetters:', Array.from(seenLetters));
+            console.log('  letterExampleCounts keys:', Object.keys(letterExampleCounts));
+        }
+        
+        // Remove a character from review
+        function removeCharacter(charId) {
+            currentSamples = currentSamples.filter(c => c.id !== charId);
+            delete predictions[charId];
+            delete corrections[charId];
+            displaySamples();
+            updateStats();
+        }
+        
+        // Load characters organized by K-means clusters
+        async function loadKMeansClusters(forceRegenerate = false, customK = null) {
+            let k = customK || parseInt(document.getElementById('k-value')?.value || '200'); // Number of clusters (let instead of const)
+            
+            // Clear feature cache when performing new clustering
+            if (forceRegenerate || !clusterData) {
+                console.log('Clearing feature cache for new clustering...');
+                featureCache.clear();
+            }
+            
+            // Show loading with message
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('loading-container').querySelector('p').textContent = 
+                `Performing K-means clustering (k=${k})... This may take a moment.`;
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                console.log('allCharacters is empty, loading...');
+                await loadAllCharacters();
+            }
+            console.log(`allCharacters has ${allCharacters.length} items after loading`);
+            
+            // Run clustering if we haven't already or if forced
+            if (!clusterData || forceRegenerate) {
+                // NO FILTERING - use ALL characters
+                let filtered = [...allCharacters];
+                
+                console.log(`Using ALL ${filtered.length} characters for clustering (no filtering)`);
+                
+                // Check if we have enough characters to cluster
+                if (filtered.length < 10) {
+                    alert(`Only ${filtered.length} characters found. Need at least 10 characters for clustering.`);
+                    document.getElementById('loading-container').style.display = 'none';
+                    document.getElementById('no-data-container').style.display = 'block';
+                    return;
+                }
+                
+                // Adjust k if we have fewer characters than clusters
+                if (filtered.length < k) {
+                    k = Math.max(2, Math.floor(filtered.length / 2));
+                    console.log(`Adjusted k to ${k} due to limited characters`);
+                }
+                
+                // Keep track of ALL filtered characters
+                const allFilteredChars = [...filtered];
+                
+                // Use ALL characters for clustering (or limit if too many)
+                const maxForClustering = Math.min(3000, filtered.length);  // Increased limit significantly
+                let clusteringSubset = filtered;
+                if (filtered.length > maxForClustering) {
+                    // Take random sample for clustering if we have more than 3000
+                    const shuffled = [...filtered].sort(() => Math.random() - 0.5);
+                    clusteringSubset = shuffled.slice(0, maxForClustering);
+                }
+                
+                console.log(`Extracting features for ${clusteringSubset.length} characters (${allFilteredChars.length} total after filtering)...`);
+                
+                // Extract features for clustering subset
+                const features = [];
+                const batchSize = 20;  // Smaller batch size for better responsiveness
+                for (let i = 0; i < clusteringSubset.length; i += batchSize) {
+                    const batch = clusteringSubset.slice(i, Math.min(i + batchSize, clusteringSubset.length));
+                    const batchFeatures = await Promise.all(
+                        batch.map(char => extractImageFeatures(char.path))
+                    );
+                    features.push(...batchFeatures);
+                    
+                    // Update progress more frequently
+                    const progress = Math.min(100, Math.round((i + batchSize) / clusteringSubset.length * 100));
+                    document.getElementById('loading-container').querySelector('p').textContent = 
+                        `Extracting features: ${progress}% (${i + batchSize}/${clusteringSubset.length})`;
+                    
+                    // Allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+                
+                console.log(`Running K-means clustering with k=${k}...`);
+                document.getElementById('loading-container').querySelector('p').textContent = 
+                    'Running K-means clustering...';
+                
+                // Run K-means clustering
+                const clusterResult = kMeansClustering(features, k);
+                
+                // Store features with characters for finding closest to centroid
+                for (let i = 0; i < clusteringSubset.length; i++) {
+                    clusteringSubset[i].clusterId = clusterResult.assignments[i];
+                    clusteringSubset[i].features = features[i];
+                }
+                
+                // Now assign remaining characters to nearest cluster
+                if (allFilteredChars.length > clusteringSubset.length) {
+                    console.log(`Assigning ${allFilteredChars.length - clusteringSubset.length} remaining characters to clusters...`);
+                    document.getElementById('loading-container').querySelector('p').textContent = 
+                        `Assigning remaining characters to clusters...`;
+                    
+                    // Create a set of IDs from clustering subset for faster lookup
+                    const clusteringSubsetIds = new Set(clusteringSubset.map(c => c.id));
+                    
+                    let assignedCount = 0;
+                    const batchSize = 20;
+                    
+                    for (let i = 0; i < allFilteredChars.length; i += batchSize) {
+                        const batch = allFilteredChars.slice(i, Math.min(i + batchSize, allFilteredChars.length));
+                        
+                        for (const char of batch) {
+                            // Skip if already in clustering subset
+                            if (clusteringSubsetIds.has(char.id)) continue;
+                            
+                            // Extract features for this character
+                            const charFeatures = await extractImageFeatures(char.path);
+                            
+                            // Find nearest centroid
+                            let minDist = Infinity;
+                            let nearestCluster = 0;
+                            for (let j = 0; j < clusterResult.centroids.length; j++) {
+                                let dist = 0;
+                                for (let d = 0; d < charFeatures.length; d++) {
+                                    dist += Math.pow(charFeatures[d] - clusterResult.centroids[j][d], 2);
+                                }
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    nearestCluster = j;
+                                }
+                            }
+                            
+                            char.clusterId = nearestCluster;
+                            char.features = charFeatures;
+                            assignedCount++;
+                        }
+                        
+                        // Update progress
+                        if (assignedCount % 50 === 0 || assignedCount === allFilteredChars.length - clusteringSubset.length) {
+                            document.getElementById('loading-container').querySelector('p').textContent = 
+                                `Assigning remaining characters: ${assignedCount}/${allFilteredChars.length - clusteringSubset.length}`;
+                        }
+                        
+                        // Allow UI to update
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                    
+                    console.log(`Assigned ${assignedCount} additional characters to clusters`);
+                }
+                
+                // Store ALL filtered characters with cluster assignments
+                clusterData = allFilteredChars;
+                clusterCentroids = clusterResult.centroids;
+                
+                // Verify all characters have cluster assignments
+                const assignedChars = clusterData.filter(c => c.clusterId !== undefined);
+                console.log(`Total filtered: ${allFilteredChars.length}, Assigned to clusters: ${assignedChars.length}`);
+            }
+            
+            // Build cluster selection modal
+            showClusterSelectionModal();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('loading-container').querySelector('p').textContent = 'Loading samples...';
+        }
+        
+        // Show cluster selection modal
+        function showClusterSelectionModal() {
+            const modal = document.getElementById('cluster-modal');
+            const grid = document.getElementById('cluster-grid');
+            grid.innerHTML = '';
+            
+            // Group characters by cluster
+            const clusters = {};
+            let totalClustered = 0;
+            for (const char of clusterData) {
+                const cid = char.clusterId;
+                if (!clusters[cid]) {
+                    clusters[cid] = [];
+                }
+                clusters[cid].push(char);
+                totalClustered++;
+            }
+            
+            let nonEmptyClusters = 0;
+            
+            // Sort clusters by size (largest first)
+            const sortedClusterIds = Object.keys(clusters)
+                .map(id => parseInt(id))
+                .sort((a, b) => clusters[b].length - clusters[a].length);
+            
+            // For each cluster, find the character closest to centroid
+            for (const clusterId of sortedClusterIds) {
+                const clusterChars = clusters[clusterId];
+                if (!clusterChars || clusterChars.length === 0) continue;
+                
+                // Skip very small clusters (likely noise)
+                if (clusterChars.length < 2) continue;  // Show clusters with 2+ items
+                
+                nonEmptyClusters++;
+                const centroid = clusterCentroids[clusterId];
+                
+                // Find character closest to centroid
+                let minDist = Infinity;
+                let representative = clusterChars[0];
+                
+                for (const char of clusterChars) {
+                    let dist = 0;
+                    for (let i = 0; i < centroid.length; i++) {
+                        dist += Math.pow(char.features[i] - centroid[i], 2);
+                    }
+                    if (dist < minDist) {
+                        minDist = dist;
+                        representative = char;
+                    }
+                }
+                
+                // Create cluster item
+                const item = document.createElement('div');
+                item.className = 'cluster-item';
+                item.onclick = () => loadClusterCharacters(clusterId);
+                
+                const img = document.createElement('img');
+                img.src = representative.path;
+                img.className = 'cluster-thumbnail';
+                
+                const label = document.createElement('div');
+                label.className = 'cluster-label';
+                label.textContent = `Cluster ${clusterId}`;
+                
+                // Calculate average dimensions for this cluster
+                const avgWidth = Math.round(clusterChars.reduce((sum, c) => sum + c.width, 0) / clusterChars.length);
+                const avgHeight = Math.round(clusterChars.reduce((sum, c) => sum + c.height, 0) / clusterChars.length);
+                const avgRatio = (avgWidth / avgHeight).toFixed(2);
+                
+                const count = document.createElement('div');
+                count.className = 'cluster-count';
+                count.textContent = `${clusterChars.length} chars`;
+                count.title = `Avg size: ${avgWidth}×${avgHeight}, ratio: ${avgRatio}`;
+                
+                item.appendChild(img);
+                item.appendChild(label);
+                item.appendChild(count);
+                
+                grid.appendChild(item);
+            }
+            
+            // Update cluster info
+            const minSize = parseInt(document.getElementById('min-size-filter')?.value || '30');
+            const sumCheck = Object.values(clusters).reduce((sum, chars) => sum + chars.length, 0);
+            document.getElementById('cluster-info').textContent = 
+                `${nonEmptyClusters} clusters with ${totalClustered} total characters (sum: ${sumCheck}, min size: ${minSize}px)`;
+            
+            modal.classList.add('active');
+        }
+        
+        // Regenerate clusters with new random initialization
+        async function regenerateClusters() {
+            // Close the modal
+            closeClusterModal();
+            
+            // Clear existing cluster data to force regeneration
+            clusterData = null;
+            clusterCentroids = null;
+            
+            // Run clustering again with same k
+            const currentK = parseInt(document.getElementById('k-value')?.value || '200');
+            await loadKMeansClusters(true, currentK);
+        }
+        
+        // Regenerate clusters with new K value
+        async function regenerateWithNewK() {
+            const newK = parseInt(document.getElementById('k-value').value);
+            
+            if (newK < 10 || newK > 200) {
+                alert('K value must be between 10 and 200');
+                return;
+            }
+            
+            // Close the modal
+            closeClusterModal();
+            
+            // Clear existing cluster data to force regeneration
+            clusterData = null;
+            clusterCentroids = null;
+            
+            // Run clustering with new k value
+            await loadKMeansClusters(true, newK);
+        }
+        
+        // Load characters from a specific cluster
+        function loadClusterCharacters(clusterId) {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Get all characters from this cluster
+            const clusterChars = clusterData.filter(c => c.clusterId === clusterId);
+            
+            // Sort by distance to centroid (closest first)
+            const centroid = clusterCentroids[clusterId];
+            clusterChars.sort((a, b) => {
+                let distA = 0, distB = 0;
+                for (let i = 0; i < centroid.length; i++) {
+                    distA += Math.pow(a.features[i] - centroid[i], 2);
+                    distB += Math.pow(b.features[i] - centroid[i], 2);
+                }
+                return distA - distB;
+            });
+            
+            // Take sample
+            currentSamples = clusterChars.slice(0, Math.min(sampleSize, clusterChars.length));
+            
+            // Clear predictions and corrections for new samples
+            predictions = {};
+            corrections = {};
+            
+            // Close modal
+            closeClusterModal();
+            
+            // Display samples
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            displaySamples();
+            updateStats();
+            
+            console.log(`Loaded ${currentSamples.length} characters from cluster ${clusterId}`);
+        }
+        
+        // Close cluster modal
+        function closeClusterModal() {
+            document.getElementById('cluster-modal').classList.remove('active');
+        }
+        
+        // Load wide characters (for omega, xi, etc.)
+        async function loadWideCharacters() {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            // Filter specifically for wide characters
+            let filtered = allCharacters.filter(c => {
+                // Skip if already classified
+                if (allClassifications[c.id]) return false;
+                
+                const aspectRatio = c.width / c.height;
+                const area = c.width * c.height;
+                
+                // Looking for wide characters like omega
+                return c.width >= 35 &&      // Wide enough
+                       c.height >= 15 &&      // Can be short
+                       c.width <= 100 &&      // Not too wide
+                       c.height <= 60 &&      // Not too tall
+                       aspectRatio >= 1.3 &&  // Definitely wider than tall
+                       aspectRatio <= 5.0 &&  // But not a line
+                       area >= 500 &&         // Decent size
+                       c.quality >= 70;       // Reasonable quality
+            });
+            
+            // Sort by width and quality
+            filtered.sort((a, b) => {
+                const scoreA = a.width * a.quality;
+                const scoreB = b.width * b.quality;
+                return scoreB - scoreA;
+            });
+            
+            // Take samples
+            currentSamples = filtered.slice(0, Math.min(sampleSize, filtered.length));
+            
+            // Clear predictions and corrections for new samples
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            console.log(`Loaded ${currentSamples.length} wide characters (potential omega, xi, etc.)`);
+            if (currentSamples.length > 0) {
+                const avgRatio = currentSamples.reduce((sum, c) => sum + c.width/c.height, 0) / currentSamples.length;
+                console.log(`Average aspect ratio: ${avgRatio.toFixed(2)}`);
+            }
+        }
+        
+        // Load largest unclassified characters
+        async function loadLargestUnclassified() {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            // Filter for unclassified characters with good letter characteristics
+            let filtered = allCharacters.filter(c => {
+                // Skip if already classified
+                if (allClassifications[c.id]) return false;
+                
+                // Focus on larger, clearer characters
+                const minSize = 30;
+                const maxSize = 70;
+                const aspectRatio = c.width / c.height;
+                const area = c.width * c.height;
+                
+                return c.width >= minSize && 
+                       c.height >= minSize &&
+                       c.width <= maxSize &&
+                       c.height <= maxSize &&
+                       aspectRatio >= 0.5 &&
+                       aspectRatio <= 2.0 &&
+                       c.quality >= 80 &&
+                       area >= 900;  // Prefer larger characters
+            });
+            
+            // Sort by size and quality (biggest and clearest first)
+            filtered.sort((a, b) => {
+                const areaA = a.width * a.height;
+                const areaB = b.width * b.height;
+                const scoreA = areaA * a.quality;
+                const scoreB = areaB * b.quality;
+                return scoreB - scoreA;
+            });
+            
+            // Take top samples
+            currentSamples = filtered.slice(0, Math.min(sampleSize, filtered.length));
+            
+            // Clear predictions and corrections for new samples
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            console.log(`Loaded ${currentSamples.length} large unclassified characters`);
+        }
+        
+        // Load samples targeting missing letters
+        async function loadMissingLetters() {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            // Load stored classifications from localStorage
+            const stored = localStorage.getItem('all_classifications');
+            if (stored) {
+                allClassifications = JSON.parse(stored);
+                console.log('Loaded stored classifications:', Object.keys(allClassifications).length);
+            }
+            
+            // Get missing letters and those with few examples
+            const allLetterNames = greekLetters.map(l => l.name);
+            const missingLetters = allLetterNames.filter(name => !seenLetters.has(name));
+            const needMoreExamples = allLetterNames.filter(name => 
+                (letterExampleCounts[name] || 0) < 5  // Need at least 5 examples per letter
+            );
+            
+            // Include thin/tall characters for missing letters like Iota
+            let filtered = allCharacters.filter(c => {
+                // Skip if already classified
+                if (allClassifications[c.id]) return false;
+                
+                const area = c.width * c.height;
+                const aspectRatio = c.width / c.height;
+                
+                // Include tall thin (Iota), wide medium (Xi), and normal letters
+                const isTallThin = c.height >= 30 && c.width <= 20 && aspectRatio <= 0.7; // Iota
+                const isNormalSize = area >= 500 && area <= 20000; // Normal letters
+                
+                return (isTallThin || isNormalSize) && c.quality >= 60;
+            });
+            
+            // Sort by quality and size
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                const scoreA = a.quality * Math.sqrt(sizeA);
+                const scoreB = b.quality * Math.sqrt(sizeB);
+                return scoreB - scoreA;
+            });
+            
+            // Take samples prioritizing diversity in appearance
+            currentSamples = [];
+            const usedSources = new Set();
+            
+            // First pass: get diverse sources
+            for (let i = 0; i < filtered.length && currentSamples.length < sampleSize; i++) {
+                const char = filtered[i];
+                if (!usedSources.has(char.source) || currentSamples.length < sampleSize / 2) {
+                    currentSamples.push({...char});
+                    usedSources.add(char.source);
+                }
+            }
+            
+            // Fill remaining slots if needed
+            for (let i = 0; i < filtered.length && currentSamples.length < sampleSize; i++) {
+                const char = filtered[i];
+                if (!currentSamples.find(s => s.id === char.id)) {
+                    currentSamples.push({...char});
+                }
+            }
+            
+            // Clear predictions and corrections for new samples
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            console.log(`Looking for missing letters: ${missingLetters.join(', ')}`);
+            alert(`Looking for ${missingLetters.length} missing letters: ${missingLetters.map(n => greekLetters.find(l => l.name === n).symbol).join(', ')}`);
+        }
+        
+        // Update statistics
+        function updateStats() {
+            document.getElementById('total-samples').textContent = currentSamples.length;
+            
+            const reviewed = Object.keys(corrections).length;
+            document.getElementById('reviewed-count').textContent = reviewed;
+            
+            const correctionsDiff = Object.keys(corrections).filter(id => 
+                corrections[id] !== predictions[id]
+            ).length;
+            document.getElementById('corrections-count').textContent = correctionsDiff;
+            
+            const nonLetters = currentSamples.filter(char => {
+                const value = corrections[char.id] || predictions[char.id];
+                return value === 'NON_LETTER';
+            }).length;
+            document.getElementById('non-letters-count').textContent = nonLetters;
+            
+            // Rebuild seenLetters from letterExampleCounts to ensure accuracy
+            seenLetters.clear();
+            for (const [letter, ids] of Object.entries(letterExampleCounts)) {
+                if (letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED' && ids && ids.length > 0) {
+                    seenLetters.add(letter);
+                }
+            }
+            
+            // Update letters found
+            document.getElementById('letters-found').textContent = `${seenLetters.size}/24`;
+            
+            // Update missing letters display
+            const allLetterNames = greekLetters.map(l => l.name);
+            const missingLetters = allLetterNames.filter(name => !seenLetters.has(name));
+            
+            console.log('Current seenLetters:', Array.from(seenLetters));
+            console.log('Missing letters:', missingLetters);
+            
+            if (missingLetters.length > 0 && missingLetters.length < 24) {
+                document.getElementById('missing-letters').style.display = 'block';
+                document.getElementById('missing-letters-list').textContent = 
+                    missingLetters.map(name => {
+                        const letter = greekLetters.find(l => l.name === name);
+                        return `${letter.symbol} (${letter.name})`;
+                    }).join(', ');
+            } else {
+                document.getElementById('missing-letters').style.display = 'none';
+            }
+        }
+        
+        // Show image modal
+        function showImageModal(char) {
+            const modal = document.getElementById('image-modal');
+            const img = document.getElementById('modal-image');
+            const info = document.getElementById('modal-info');
+            
+            img.src = char.path;
+            
+            const currentClass = corrections[char.id] || predictions[char.id];
+            const letter = currentClass ? greekLetters.find(l => l.name === currentClass) : null;
+            
+            info.innerHTML = `
+                <p><strong>File:</strong> ${char.filename}</p>
+                <p><strong>Source:</strong> ${char.source}</p>
+                <p><strong>Quality:</strong> ${char.quality}%</p>
+                <p><strong>Size:</strong> ${char.width} × ${char.height}</p>
+                <p><strong>Classification:</strong> ${letter ? `${letter.symbol} (${letter.name})` : 
+                    currentClass === 'NON_LETTER' ? 'Non-letter' : 'Unclassified'}</p>
+            `;
+            
+            modal.classList.add('active');
+        }
+        
+        // Close modal
+        function closeModal() {
+            document.getElementById('image-modal').classList.remove('active');
+        }
+        
+        // Show letter samples menu
+        function showLetterSamplesMenu() {
+            // First, ensure we have the latest data from localStorage
+            const storedCounts = localStorage.getItem('letter_counts');
+            if (storedCounts) {
+                letterExampleCounts = JSON.parse(storedCounts);
+                console.log('Reloaded letterExampleCounts from localStorage');
+            }
+            
+            const storedClassifications = localStorage.getItem('all_classifications');
+            if (storedClassifications) {
+                allClassifications = JSON.parse(storedClassifications);
+                console.log('Reloaded allClassifications from localStorage');
+            }
+            
+            // Debug: Check what's actually loaded
+            console.log('letterExampleCounts:', letterExampleCounts);
+            console.log('Total letters in letterExampleCounts:', Object.keys(letterExampleCounts).length);
+            console.log('Letters with samples:', Object.keys(letterExampleCounts).filter(l => l !== 'NON_LETTER' && l !== 'UNCLASSIFIED' && letterExampleCounts[l] && letterExampleCounts[l].length > 0));
+            
+            // Create a simple menu of available letters
+            const availableLetters = Object.keys(letterExampleCounts)
+                .filter(letter => letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED')
+                .sort((a, b) => {
+                    // Sort by Greek alphabet order
+                    const aIndex = greekLetters.findIndex(l => l.name === a);
+                    const bIndex = greekLetters.findIndex(l => l.name === b);
+                    return aIndex - bIndex;
+                });
+            
+            console.log(`Found ${availableLetters.length} letters:`, availableLetters);
+            
+            if (availableLetters.length === 0) {
+                alert('No classified letters found yet.');
+                return;
+            }
+            
+            // Create a modal with dropdown
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.style.zIndex = '10000';
+            
+            const content = document.createElement('div');
+            content.className = 'modal-content';
+            content.style.maxWidth = '400px';
+            
+            content.innerHTML = `
+                <div class="modal-header">
+                    <h2>Select Letter to Manage</h2>
+                </div>
+                <div class="modal-body" style="padding: 20px;">
+                    <select id="letter-select" style="width: 100%; padding: 10px; font-size: 16px; margin-bottom: 20px;">
+                        <option value="">-- Choose a letter --</option>
+                        ${availableLetters.map(letterName => {
+                            const letterInfo = greekLetters.find(l => l.name === letterName);
+                            const count = letterExampleCounts[letterName].length;
+                            return `<option value="${letterName}">${letterInfo.symbol} (${letterInfo.name}) - ${count} samples</option>`;
+                        }).join('')}
+                    </select>
+                    <div style="text-align: center;">
+                        <button class="btn btn-primary" onclick="
+                            const select = document.getElementById('letter-select');
+                            if (select.value) {
+                                showLetterSamples(select.value);
+                                this.closest('.modal').remove();
+                            } else {
+                                alert('Please select a letter');
+                            }
+                        ">Open</button>
+                        <button class="btn" onclick="this.closest('.modal').remove()" style="margin-left: 10px;">Cancel</button>
+                    </div>
+                </div>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Focus the dropdown
+            setTimeout(() => {
+                document.getElementById('letter-select').focus();
+            }, 100);
+        }
+        
+        // Show letter samples modal
+        function showLetterSamples(letterName) {
+            const modal = document.getElementById('letter-samples-modal');
+            const title = document.getElementById('letter-samples-title');
+            const countElement = document.getElementById('letter-samples-count');
+            const grid = document.getElementById('letter-samples-grid');
+            
+            // Get the letter info
+            const letterInfo = greekLetters.find(l => l.name === letterName);
+            if (!letterInfo) return;
+            
+            // Get all sample IDs for this letter
+            const sampleIds = letterExampleCounts[letterName] || [];
+            
+            // Update modal header
+            title.textContent = `${letterInfo.symbol} (${letterInfo.name}) Samples`;
+            countElement.textContent = `${sampleIds.length} samples`;
+            
+            // Clear and populate grid
+            grid.innerHTML = '';
+            
+            sampleIds.forEach(charId => {
+                // Find the character data
+                let charData = allCharacters.find(c => c.id === charId);
+                if (!charData) {
+                    // Try to construct basic data if not found
+                    const numericId = charId.replace('letter_', '');
+                    const paddedId = numericId.padStart(5, '0');
+                    charData = {
+                        id: charId,
+                        path: `letters_for_review/letter_${paddedId}.png`,
+                        filename: `letter_${paddedId}.png`
+                    };
+                }
+                
+                // Create sample element
+                const sampleDiv = document.createElement('div');
+                sampleDiv.style.cssText = 'text-align: center; position: relative;';
+                sampleDiv.innerHTML = `
+                    <div style="position: relative; display: inline-block;">
+                        <img src="${charData.path}" 
+                             style="max-width: 100px; max-height: 100px; border: 1px solid #ddd; padding: 5px; background: white; cursor: pointer;"
+                             onclick="showImageModal({id: '${charData.id}', path: '${charData.path}', filename: '${charData.filename}', source: '${charData.source || 'unknown'}', quality: ${charData.quality || 0}, width: ${charData.width || 0}, height: ${charData.height || 0}})"
+                             title="Click to enlarge">
+                        <button onclick="removeLetterSample('${letterName}', '${charId}')" 
+                                style="position: absolute; top: -5px; right: -5px; background: #f56565; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1;"
+                                title="Remove this sample">×</button>
+                    </div>
+                    <div style="font-size: 10px; color: #666; margin-top: 5px;">${charData.filename}</div>
+                `;
+                
+                grid.appendChild(sampleDiv);
+            });
+            
+            // Show modal
+            modal.classList.add('active');
+        }
+        
+        // Close letter samples modal
+        function closeLetterSamplesModal() {
+            document.getElementById('letter-samples-modal').classList.remove('active');
+        }
+        
+        // Remove a letter sample
+        function removeLetterSample(letterName, charId) {
+            if (!confirm(`Remove this sample from ${letterName}?`)) return;
+            
+            // Remove from letterExampleCounts
+            if (letterExampleCounts[letterName]) {
+                const index = letterExampleCounts[letterName].indexOf(charId);
+                if (index > -1) {
+                    letterExampleCounts[letterName].splice(index, 1);
+                    
+                    // If no more samples, remove the letter entirely
+                    if (letterExampleCounts[letterName].length === 0) {
+                        delete letterExampleCounts[letterName];
+                        seenLetters.delete(letterName);
+                    }
+                }
+            }
+            
+            // Remove from allClassifications
+            if (allClassifications[charId] === letterName) {
+                delete allClassifications[charId];
+            }
+            
+            // Remove from corrections if it exists
+            if (corrections[charId] === letterName) {
+                delete corrections[charId];
+            }
+            
+            // Update localStorage
+            localStorage.setItem('letter_counts', JSON.stringify(letterExampleCounts));
+            localStorage.setItem('all_classifications', JSON.stringify(allClassifications));
+            
+            // Refresh the modal
+            showLetterSamples(letterName);
+            
+            // Update stats
+            updateStats();
+        }
+        
+        // Save review data to localStorage and optionally to file
+        async function saveCompleteReview() {
+            // Save ALL current classifications including all 21 letters
+            console.log('Saving complete review with all 21 letters...');
+            console.log('seenLetters (', seenLetters.size, '):', Array.from(seenLetters));
+            console.log('letterExampleCounts:', letterExampleCounts);
+            
+            const allData = [];
+            
+            // Build a map of all classified characters from letterExampleCounts
+            const classifiedChars = {};
+            for (const [letter, charIds] of Object.entries(letterExampleCounts)) {
+                if (letter && letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED') {
+                    for (const charId of charIds) {
+                        classifiedChars[charId] = letter;
+                    }
+                }
+            }
+            
+            console.log('Built classifiedChars map with', Object.keys(classifiedChars).length, 'items');
+            
+            // Also add from corrections and predictions
+            Object.assign(classifiedChars, predictions);
+            Object.assign(classifiedChars, corrections);
+            
+            console.log('After adding corrections/predictions:', Object.keys(classifiedChars).length, 'items');
+            
+            // Go through ALL characters and check if they have classifications
+            for (const char of allCharacters) {
+                // Extract the numeric ID from char.id (e.g., "letter_75" -> "75")
+                const numericId = char.id.replace('letter_', '');
+                
+                // Check if this character has a classification
+                const classification = classifiedChars[numericId] || 'UNCLASSIFIED';
+                
+                allData.push({
+                    id: char.id,
+                    path: char.path,
+                    filename: char.filename,
+                    source: char.source,
+                    classification: classification,
+                    quality: char.quality || 85,
+                    width: char.width || 40,
+                    height: char.height || 40
+                });
+            }
+            
+            // Count unique letters and classified items
+            const letters = new Set();
+            let classifiedCount = 0;
+            allData.forEach(item => {
+                if (item.classification && item.classification !== 'UNCLASSIFIED') {
+                    classifiedCount++;
+                    if (item.classification !== 'NON_LETTER') {
+                        letters.add(item.classification);
+                    }
+                }
+            });
+            
+            const filename = `complete_review_21_letters.json`;
+            
+            console.log(`Saving ${classifiedCount} classified items with ${letters.size} unique letters`);
+            
+            try {
+                const response = await fetch('http://localhost:8080/save_review', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        data: allData
+                    })
+                });
+                
+                if (response.ok) {
+                    alert(`✅ Saved ALL ${letters.size} letters!\n\nFile: ${filename}\nTotal items in file: ${allData.length}\nClassified items: ${classifiedCount}\n\nLetters saved:\n${Array.from(letters).sort().join(', ')}`);
+                } else {
+                    alert('Failed to save. Check server.');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function saveReview() {
+            // Build review data for ALL classified characters, not just current samples
+            const reviewData = [];
+            
+            // Go through all characters and save those with classifications
+            for (const char of allCharacters) {
+                const charId = char.id.replace('letter_', '');
+                const classification = allClassifications[charId] || corrections[charId] || predictions[charId];
+                
+                if (classification) {
+                    reviewData.push({
+                        id: char.id,
+                        path: char.path,
+                        filename: char.filename,
+                        source: char.source,
+                        classification: classification,
+                        corrected: corrections[charId] ? true : false,
+                        quality: char.quality || 85,
+                        width: char.width || 40,
+                        height: char.height || 40
+                    });
+                }
+            }
+            
+            // If no characters loaded yet, build from classifications
+            if (reviewData.length === 0 && Object.keys(allClassifications).length > 0) {
+                for (const [charId, classification] of Object.entries(allClassifications)) {
+                    const fullId = charId.startsWith('letter_') ? charId : `letter_${charId}`;
+                    reviewData.push({
+                        id: fullId,
+                        path: `letters_for_review/letter_${charId.padStart(5, '0')}.png`,
+                        filename: `letter_${charId.padStart(5, '0')}.png`,
+                        source: 'unknown',
+                        classification: classification,
+                        corrected: corrections[charId] ? true : false,
+                        quality: 85,
+                        width: 40,
+                        height: 40
+                    });
+                }
+            }
+            // Save to localStorage
+            localStorage.setItem('all_review_data', JSON.stringify(reviewData));
+            localStorage.setItem('all_classifications', JSON.stringify(allClassifications));
+            localStorage.setItem('letter_counts', JSON.stringify(letterExampleCounts));
+            
+            // Save to server via POST request
+            try {
+                const response = await fetch('http://localhost:8080/save_review', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: `review_data_${new Date().toISOString().split('T')[0]}.json`,
+                        data: reviewData
+                    })
+                });
+                
+                if (response.ok) {
+                    // Count unique letters
+                    const letters = new Set();
+                    reviewData.forEach(item => {
+                        if (item.classification && item.classification !== 'UNCLASSIFIED' && item.classification !== 'NON_LETTER') {
+                            letters.add(item.classification);
+                        }
+                    });
+                    alert(`✅ Saved to file!\n\n${reviewData.length} classified characters\n${letters.size} unique letters\n\nFile: review_data_${new Date().toISOString().split('T')[0]}.json`);
+                } else {
+                    console.log('Server save failed, saved to browser storage');
+                    alert(`Saved ${reviewData.length} characters to browser storage only`);
+                }
+            } catch (error) {
+                console.log('Could not reach server:', error);
+                alert(`Saved ${reviewData.length} characters to browser storage only`);
+            }
+        }
+        
+        // Show classification summary
+        function debugClassifications() {
+            // Debug function to check localStorage vs memory
+            const storedClassifications = JSON.parse(localStorage.getItem('all_classifications') || '{}');
+            const storedLetters = new Set();
+            Object.values(storedClassifications).forEach(c => {
+                if (c && c !== 'NON_LETTER' && c !== 'UNCLASSIFIED') {
+                    storedLetters.add(c);
+                }
+            });
+            
+            const memoryLetters = new Set();
+            Object.values(allClassifications).forEach(c => {
+                if (c && c !== 'NON_LETTER' && c !== 'UNCLASSIFIED') {
+                    memoryLetters.add(c);
+                }
+            });
+            
+            console.log('=== DEBUG CLASSIFICATIONS ===');
+            console.log('In localStorage:', storedLetters.size, 'letters:', Array.from(storedLetters).sort());
+            console.log('In memory (allClassifications):', memoryLetters.size, 'letters:', Array.from(memoryLetters).sort());
+            console.log('Total classified in memory:', Object.keys(allClassifications).length);
+            console.log('Total classified in localStorage:', Object.keys(storedClassifications).length);
+            
+            // Check what seenLetters has
+            console.log('seenLetters set:', seenLetters.size, 'letters:', Array.from(seenLetters).sort());
+            
+            // List all 24 Greek letters and check which are missing
+            const allGreekLetters = ['ALPHA', 'BETA', 'GAMMA', 'DELTA', 'EPSILON', 'ZETA', 'ETA', 'THETA', 
+                'IOTA', 'KAPPA', 'LAMBDA', 'MU', 'NU', 'XI', 'OMICRON', 'PI', 
+                'RHO', 'SIGMA', 'TAU', 'UPSILON', 'PHI', 'CHI', 'PSI', 'OMEGA'];
+            const missing = allGreekLetters.filter(l => !memoryLetters.has(l));
+            console.log('Missing letters:', missing.length, missing);
+            
+            return {
+                localStorage: storedLetters,
+                memory: memoryLetters,
+                missing: missing
+            };
+        }
+        
+        function showClassificationSummary() {
+            const summary = {};
+            
+            // Count all classifications
+            Object.values(allClassifications).forEach(classification => {
+                summary[classification] = (summary[classification] || 0) + 1;
+            });
+            
+            // Create summary text
+            let message = 'Classification Summary:\n\n';
+            
+            // Show letter counts
+            greekLetters.forEach(letter => {
+                const count = summary[letter.name] || 0;
+                const status = count === 0 ? '❌ MISSING' : count < 5 ? '⚠️ Need more' : '✅';
+                message += `${status} ${letter.symbol} (${letter.name}): ${count} examples\n`;
+            });
+            
+            // Show non-letters
+            message += `\n❌ NON_LETTER: ${summary['NON_LETTER'] || 0} examples`;
+            message += `\n❓ UNCLASSIFIED: ${summary['UNCLASSIFIED'] || 0} examples`;
+            message += `\n\nTotal classified: ${Object.keys(allClassifications).length}`;
+            
+            alert(message);
+        }
+        
+        // Direct search for a specific letter
+        async function searchLetter(letterName) {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            console.log(`Searching for ${letterName} among ${allCharacters.length} total characters`);
+            
+            // Start with ALL characters
+            let filtered = [...allCharacters];
+            
+            // Apply filters based on letter type
+            if (letterName === 'TAU') {
+                // Tau (T) - wider at top
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 20 && c.width <= 80 &&
+                           c.height >= 20 && c.height <= 80 &&
+                           aspectRatio >= 0.6 && aspectRatio <= 2.5;
+                });
+            } else if (letterName === 'UPSILON') {
+                // Upsilon (Y) - Y shape
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 20 && c.width <= 70 &&
+                           c.height >= 25 && c.height <= 80 &&
+                           aspectRatio >= 0.5 && aspectRatio <= 1.8;
+                });
+            } else if (letterName === 'OMEGA') {
+                // Omega - wide
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 30 && c.width <= 90 &&
+                           c.height >= 20 && c.height <= 70 &&
+                           aspectRatio >= 1.2 && aspectRatio <= 3.5;
+                });
+            }
+            
+            console.log(`Found ${filtered.length} potential ${letterName} characters`);
+            
+            // Sort by size
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                return sizeB - sizeA;
+            });
+            
+            // Take sample
+            currentSamples = filtered.slice(0, Math.min(sampleSize, filtered.length));
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            alert(`Found ${filtered.length} potential ${letterName} characters.\nShowing ${currentSamples.length}.`);
+        }
+        
+        // Search for specific letter shapes (OLD - keeping for compatibility)
+        async function searchForLetter() {
+            // Remove any existing dialog first
+            const existingDialog = document.getElementById('letter-search-dialog');
+            if (existingDialog) {
+                existingDialog.remove();
+            }
+            
+            // Create a dropdown dialog
+            const letterOptions = greekLetters.map(l => `<option value="${l.name}">${l.symbol} - ${l.name}</option>`).join('');
+            
+            const dialog = document.createElement('div');
+            dialog.id = 'letter-search-dialog';
+            dialog.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 10000;
+            `;
+            
+            dialog.innerHTML = `
+                <h3 style="margin: 0 0 15px 0; color: #2d3748;">Search for Letter</h3>
+                <select id="letter-search-select" style="width: 100%; padding: 8px; font-size: 16px; border: 2px solid #e2e8f0; border-radius: 4px; margin-bottom: 15px;">
+                    <option value="">-- Select a letter --</option>
+                    ${letterOptions}
+                </select>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="document.getElementById('letter-search-dialog').remove()" style="padding: 8px 16px; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                    <button onclick="executeLetterSearch()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">Search</button>
+                </div>
+            `;
+            
+            document.body.appendChild(dialog);
+            document.getElementById('letter-search-select').focus();
+        }
+        
+        // Execute the letter search
+        async function executeLetterSearch() {
+            const select = document.getElementById('letter-search-select');
+            if (!select) return; // Safety check
+            
+            const letterName = select.value;
+            
+            // Remove dialog
+            const dialog = document.getElementById('letter-search-dialog');
+            if (dialog) {
+                dialog.remove();
+            }
+            
+            if (!letterName) return;
+            
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            console.log(`Searching for ${letterName} among ${allCharacters.length} total characters`);
+            
+            // Debug: Show distribution of character sizes
+            const widthDist = {};
+            const heightDist = {};
+            allCharacters.forEach(c => {
+                const wBucket = Math.floor(c.width / 10) * 10;
+                const hBucket = Math.floor(c.height / 10) * 10;
+                widthDist[wBucket] = (widthDist[wBucket] || 0) + 1;
+                heightDist[hBucket] = (heightDist[hBucket] || 0) + 1;
+            });
+            console.log('Width distribution:', widthDist);
+            console.log('Height distribution:', heightDist);
+            
+            // Start with ALL characters - no filtering initially
+            let filtered = [...allCharacters];
+            
+            console.log(`Starting with ALL ${filtered.length} characters`);
+            
+            // Apply specific filters for each letter type
+            if (letterName === 'TAU') {
+                // Tau (T) - should be wider at top, narrow stem
+                // Look for characters that are:
+                // - Medium to large size
+                // - Wider than tall or roughly square
+                // - Not tiny artifacts
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 20 && 
+                           c.height >= 20 &&
+                           c.width <= 80 &&
+                           c.height <= 80 &&
+                           aspectRatio >= 0.6 && 
+                           aspectRatio <= 2.5;
+                });
+                console.log(`TAU filter: ${filtered.length} candidates (20-80px, aspect 0.6-2.5)`);
+                
+            } else if (letterName === 'UPSILON') {
+                // Upsilon (Y) - should have two arms at top, single stem
+                // Look for characters that are:
+                // - Medium to large size  
+                // - Taller than wide or roughly square
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 20 && 
+                           c.height >= 25 &&
+                           c.width <= 70 &&
+                           c.height <= 80 &&
+                           aspectRatio >= 0.5 && 
+                           aspectRatio <= 1.8;
+                });
+                console.log(`UPSILON filter: ${filtered.length} candidates (20-70px wide, 25-80px tall, aspect 0.5-1.8)`);
+                
+            } else if (letterName === 'OMEGA') {
+                // Omega - wide character with opening at bottom
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 30 && 
+                           c.height >= 20 &&
+                           c.width <= 90 &&
+                           c.height <= 70 &&
+                           aspectRatio >= 1.2 && 
+                           aspectRatio <= 3.5;
+                });
+                console.log(`OMEGA filter: ${filtered.length} candidates (wide character)`);
+                
+            } else if (letterName === 'IOTA') {
+                // Iota - thin vertical line
+                filtered = filtered.filter(c => {
+                    const aspectRatio = c.width / c.height;
+                    return c.width >= 10 && 
+                           c.width <= 35 &&
+                           c.height >= 25 &&
+                           c.height <= 80 &&
+                           aspectRatio >= 0.15 && 
+                           aspectRatio <= 0.7;
+                });
+                console.log(`IOTA filter: ${filtered.length} candidates (narrow vertical)`);
+                
+            } else {
+                // For other letters, just exclude tiny artifacts
+                filtered = filtered.filter(c => {
+                    return c.width >= 15 && c.height >= 15;
+                });
+                console.log(`Generic filter: ${filtered.length} candidates (>= 15px)`);
+            }
+            
+            // Sort by size only (quality metric is useless)
+            filtered.sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                return sizeB - sizeA;
+            });
+            
+            // Take sample
+            currentSamples = filtered.slice(0, Math.min(sampleSize, filtered.length));
+            
+            console.log(`Selected ${currentSamples.length} samples`);
+            if (currentSamples.length > 0) {
+                console.log('Sample character sizes:', currentSamples.slice(0, 5).map(c => ({
+                    width: c.width,
+                    height: c.height,
+                    quality: c.quality,
+                    id: c.id
+                })));
+            }
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            console.log(`Found ${filtered.length} potential ${letterName} characters`);
+            alert(`Searching for ${letterName}:\n\nTotal characters: ${allCharacters.length}\nAfter filters: ${filtered.length}\nShowing: ${currentSamples.length}\n\nCheck console for details.`);
+        }
+        
+        // Show all characters without clustering
+        async function showAllCharacters() {
+            const sampleSize = parseInt(document.getElementById('sample-size').value);
+            
+            // Show loading
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('no-data-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'none';
+            
+            // Load all characters if not already loaded
+            if (allCharacters.length === 0) {
+                await loadAllCharacters();
+            }
+            
+            console.log(`Showing all ${allCharacters.length} characters (no filtering)`);
+            
+            // Just sort by size (quality metric is useless)
+            const sorted = [...allCharacters].sort((a, b) => {
+                const sizeA = a.width * a.height;
+                const sizeB = b.width * b.height;
+                return sizeB - sizeA;
+            });
+            
+            // Take sample
+            currentSamples = sorted.slice(0, Math.min(sampleSize, sorted.length));
+            
+            // Clear predictions and corrections
+            predictions = {};
+            corrections = {};
+            
+            // Display samples
+            displaySamples();
+            
+            // Hide loading
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('review-container').style.display = 'block';
+            
+            updateStats();
+            
+            alert(`Showing ${currentSamples.length} of ${allCharacters.length} total characters (sorted by quality/size)`);
+        }
+        
+        // Create test font from reviewed characters
+        async function loadSavedFile() {
+            // Option 1: Load today's file automatically
+            const autoLoad = confirm("Load today's saved file automatically?\n\nClick OK to load review_data_2025-08-23.json\nClick Cancel to choose a file manually");
+            
+            if (autoLoad) {
+                // Try to load today's file directly
+                try {
+                    const response = await fetch('review_data_2025-08-23.json');
+                    if (!response.ok) throw new Error('File not found');
+                    
+                    const savedData = await response.json();
+                    loadReviewData(savedData, 'review_data_2025-08-23.json');
+                } catch (error) {
+                    alert('Could not load review_data_2025-08-23.json\n\nTrying file picker...');
+                    loadWithFilePicker();
+                }
+            } else {
+                loadWithFilePicker();
+            }
+        }
+        
+        function loadWithFilePicker() {
+            // Create file input element
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const text = await file.text();
+                    const savedData = JSON.parse(text);
+                    loadReviewData(savedData, file.name);
+                } catch (error) {
+                    console.error('Error loading file:', error);
+                    alert('Error loading file: ' + error.message);
+                }
+            };
+            
+            // Trigger file selection
+            input.click();
+        }
+        
+        function loadReviewData(savedData, filename) {
+            console.log(`Loading ${savedData.length} saved reviews from file: ${filename}`);
+            
+            let loadedCount = 0;
+            let letterCounts = {};
+            
+            // Clear existing data
+            allClassifications = {};
+            letterExampleCounts = {};
+            seenLetters.clear();
+            
+            // Process saved data
+            savedData.forEach(item => {
+                if (item.classification && item.classification !== 'UNCLASSIFIED') {
+                    // Store classification using the ID format without "letter_" prefix
+                    const charId = item.id.replace('letter_', '');
+                    allClassifications[charId] = item.classification;
+                    loadedCount++;
+                    
+                    if (item.classification !== 'NON_LETTER') {
+                        if (!letterExampleCounts[item.classification]) {
+                            letterExampleCounts[item.classification] = [];
+                        }
+                        if (!letterExampleCounts[item.classification].includes(charId)) {
+                            letterExampleCounts[item.classification].push(charId);
+                        }
+                        seenLetters.add(item.classification);
+                        letterCounts[item.classification] = (letterCounts[item.classification] || 0) + 1;
+                    }
+                }
+            });
+            
+            console.log('Loaded classifications:', allClassifications);
+            console.log('Letter counts:', letterCounts);
+            console.log('Letter example counts:', letterExampleCounts);
+            
+            // Save to localStorage
+            localStorage.setItem('all_classifications', JSON.stringify(allClassifications));
+            localStorage.setItem('letter_counts', JSON.stringify(letterExampleCounts));
+            
+            // Update stats
+            updateStats();
+            
+            const message = `✅ Loaded from ${filename}!\n\n` +
+                `${loadedCount} classified characters\n` +
+                `${Object.keys(letterCounts).length} unique letters\n\n` +
+                `Letters found: ${Object.keys(letterCounts).sort().join(', ')}`;
+            alert(message);
+        }
+        
+        async function createTestFont() {
+            // Force refresh from current state, not cached data
+            console.log('Current letterExampleCounts:', letterExampleCounts);
+            console.log('Current allClassifications:', Object.keys(allClassifications).length, 'items');
+            
+            // Build classifications from all available sources
+            const reviewedChars = {};
+            
+            // Method 1: From letterExampleCounts (this is what shows 21/24)
+            for (const [letter, charIds] of Object.entries(letterExampleCounts)) {
+                if (letter && letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED' && charIds && charIds.length > 0) {
+                    // Take only the first character for each letter to ensure it exists
+                    // charIds might already have "letter_" prefix or be numeric
+                    const validIds = charIds.slice(0, 1).map(id => {
+                        if (typeof id === 'string' && id.startsWith('letter_')) {
+                            return id;
+                        } else {
+                            // Pad the ID to 5 digits for correct filename
+                            const paddedId = String(id).padStart(5, '0');
+                            return `letter_${paddedId}`;
+                        }
+                    });
+                    reviewedChars[letter] = validIds;
+                }
+            }
+            
+            // Don't use old cached data - only use current letterExampleCounts
+            console.log('Letters to include in font:', Object.keys(reviewedChars));
+            
+            // Check if we have any reviewed characters
+            if (Object.keys(reviewedChars).length === 0) {
+                alert('No reviewed characters found!\n\nPlease classify some letters first.');
+                return;
+            }
+            
+            // Debug: Show what we're sending
+            console.log('Characters per letter:');
+            for (const [letter, ids] of Object.entries(reviewedChars)) {
+                console.log(`  ${letter}: ${ids[0]}`);
+            }
+            
+            console.log('Sending classifications to server:', reviewedChars);
+            console.log('Letter count:', Object.keys(reviewedChars).length);
+            console.log('Total characters:', Object.values(reviewedChars).reduce((sum, arr) => sum + arr.length, 0));
+            
+            // Send request to create font with all reviewed characters
+            try {
+                const response = await fetch('http://localhost:8080/create_font', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        classifications: reviewedChars,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create font');
+                }
+                
+                const result = await response.json();
+                
+                // Count letters and characters
+                const letterCount = Object.keys(reviewedChars).length;
+                const totalChars = Object.values(reviewedChars).reduce((sum, arr) => sum + arr.length, 0);
+                
+                console.log(`Created font with ${letterCount} letters and ${totalChars} total characters`);
+                alert(`Font created successfully!\n\n${letterCount} letters with ${totalChars} total characters.\n\nTest page will open automatically!`);
+                
+            } catch (error) {
+                console.error('Error creating font:', error);
+                alert('Error creating font. Check console for details.');
+            }
+        }
+        
+        // Clear specific letter classifications
+        function clearSpecificLetter() {
+            // Get classified letters
+            const letters = Object.keys(letterExampleCounts).filter(l => 
+                l !== 'NON_LETTER' && l !== 'UNCLASSIFIED'
+            ).sort();
+            
+            if (letters.length === 0) {
+                alert('No letters have been classified yet.');
+                return;
+            }
+            
+            // Create a modal dialog with dropdown
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                z-index: 10001;
+                min-width: 300px;
+            `;
+            
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 10000;
+            `;
+            
+            modal.innerHTML = `
+                <h3 style="margin: 0 0 20px 0; color: #2d3748;">Clear Letter Classifications</h3>
+                <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #4a5568;">
+                    Select letter to clear:
+                </label>
+                <select id="letter-to-clear" style="width: 100%; padding: 8px; margin-bottom: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 16px;">
+                    ${letters.map(letter => {
+                        const count = letterExampleCounts[letter].length;
+                        const symbol = greekLetters.find(gl => gl.name === letter)?.symbol || '';
+                        return `<option value="${letter}">${symbol} ${letter} (${count} examples)</option>`;
+                    }).join('')}
+                </select>
+                <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <button onclick="this.closest('div').parentElement.remove(); document.querySelector('.clear-overlay').remove();" 
+                            style="padding: 8px 16px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer;">
+                        Cancel
+                    </button>
+                    <button onclick="confirmClearLetter()" 
+                            style="padding: 8px 16px; background: #f56565; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        Clear Selected Letter
+                    </button>
+                </div>
+            `;
+            
+            overlay.className = 'clear-overlay';
+            overlay.onclick = function() {
+                modal.remove();
+                overlay.remove();
+            };
+            
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+            
+            // Focus the dropdown
+            document.getElementById('letter-to-clear').focus();
+        }
+        
+        function confirmClearLetter() {
+            const select = document.getElementById('letter-to-clear');
+            const letterToClear = select.value;
+            const count = letterExampleCounts[letterToClear].length;
+            
+            if (confirm(`Clear all ${count} classifications for ${letterToClear}?`)) {
+                // Get the character IDs for this letter
+                const charIds = letterExampleCounts[letterToClear] || [];
+                
+                // Remove from allClassifications
+                charIds.forEach(id => {
+                    const charId = String(id).replace('letter_', '');
+                    if (allClassifications[charId] === letterToClear) {
+                        delete allClassifications[charId];
+                    }
+                });
+                
+                // Remove from letterExampleCounts
+                delete letterExampleCounts[letterToClear];
+                
+                // Remove from seenLetters - this is crucial for missing letters list
+                seenLetters.delete(letterToClear);
+                
+                // Also remove from any displayed samples
+                currentSamples.forEach(sample => {
+                    const sampleId = sample.id.replace('letter_', '');
+                    if (allClassifications[sampleId] === letterToClear) {
+                        delete allClassifications[sampleId];
+                    }
+                });
+                
+                // Update localStorage
+                localStorage.setItem('all_classifications', JSON.stringify(allClassifications));
+                localStorage.setItem('letter_counts', JSON.stringify(letterExampleCounts));
+                localStorage.removeItem('seen_letters'); // Clear this too
+                
+                // Rebuild seenLetters from scratch to ensure accuracy
+                seenLetters.clear();
+                for (const [letter, ids] of Object.entries(letterExampleCounts)) {
+                    if (letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED' && ids && ids.length > 0) {
+                        seenLetters.add(letter);
+                    }
+                }
+                
+                // Update display - this should update the missing letters list
+                updateStats();
+                displaySamples();
+                
+                // Remove modal
+                document.querySelector('.clear-overlay').remove();
+                document.querySelector('#letter-to-clear').closest('div').remove();
+                
+                alert(`Cleared ${count} classifications for ${letterToClear}\n\n${letterToClear} should now appear in the missing letters list.`);
+            }
+        }
+        
+        // Force refresh state from actual data
+        function forceRefreshState() {
+            console.log('Force refreshing state...');
+            
+            // Clear and rebuild seenLetters from letterExampleCounts
+            seenLetters.clear();
+            
+            // Go through letterExampleCounts and rebuild
+            for (const [letter, ids] of Object.entries(letterExampleCounts)) {
+                if (letter && letter !== 'NON_LETTER' && letter !== 'UNCLASSIFIED' && ids && ids.length > 0) {
+                    seenLetters.add(letter);
+                }
+            }
+            
+            // Force update the display
+            updateStats();
+            
+            // Show what we have
+            const currentLetters = Array.from(seenLetters).sort();
+            const allLetterNames = greekLetters.map(l => l.name);
+            const missingLetters = allLetterNames.filter(name => !seenLetters.has(name));
+            
+            alert(`State refreshed!\n\nCurrent letters (${currentLetters.length}):\n${currentLetters.join(', ')}\n\nMissing letters (${missingLetters.length}):\n${missingLetters.join(', ')}`);
+        }
+        
+        // Clear all data
+        function clearAll() {
+            if (confirm('Clear all current samples and start over?')) {
+                currentSamples = [];
+                predictions = {};
+                corrections = {};
+                allClassifications = {};
+                letterExampleCounts = {};
+                seenLetters.clear();
+                
+                // Clear localStorage too
+                localStorage.removeItem('all_classifications');
+                localStorage.removeItem('letter_counts');
+                localStorage.removeItem('all_review_data');
+                
+                displaySamples();
+                updateStats();
+                document.getElementById('review-container').style.display = 'none';
+                document.getElementById('no-data-container').style.display = 'block';
+            }
+        }
+        
+        // Click outside modal to close
+        window.onclick = function(event) {
+            const modal = document.getElementById('image-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Load sources for dropdown
+            await loadSources();
+            
+            // Try to load saved review data from file first
+            try {
+                const response = await fetch('review_data_2025-08-23.json');
+                if (response.ok) {
+                    const savedData = await response.json();
+                    console.log(`Loading ${savedData.length} saved reviews from file`);
+                    
+                    // Process saved data
+                    savedData.forEach(item => {
+                        if (item.classification && item.classification !== 'UNCLASSIFIED') {
+                            // Store classification using the ID format without "letter_" prefix
+                            const charId = item.id.replace('letter_', '');
+                            allClassifications[charId] = item.classification;
+                            
+                            if (item.classification !== 'NON_LETTER') {
+                                if (!letterExampleCounts[item.classification]) {
+                                    letterExampleCounts[item.classification] = [];
+                                }
+                                if (!letterExampleCounts[item.classification].includes(charId)) {
+                                    letterExampleCounts[item.classification].push(charId);
+                                }
+                                seenLetters.add(item.classification);
+                            }
+                        }
+                    });
+                    
+                    // Update stats
+                    updateStats();
+                    console.log('Loaded classifications:', Object.keys(allClassifications).length);
+                    console.log('Letter types found:', Array.from(seenLetters).sort());
+                }
+            } catch (error) {
+                console.log('No saved review file found, checking localStorage');
+            }
+            
+            // Fall back to localStorage if no file or if you want to merge
+            const storedClassifications = localStorage.getItem('all_classifications');
+            if (storedClassifications) {
+                const localClassifications = JSON.parse(storedClassifications);
+                // Merge with file data (file data takes precedence)
+                allClassifications = { ...localClassifications, ...allClassifications };
+                
+                // Rebuild letter counts and seen letters
+                Object.values(allClassifications).forEach(classification => {
+                    if (classification !== 'NON_LETTER' && classification !== 'UNCLASSIFIED') {
+                        seenLetters.add(classification);
+                        letterExampleCounts[classification] = (letterExampleCounts[classification] || 0) + 1;
+                    }
+                });
+            }
+            
+            const storedCounts = localStorage.getItem('letter_counts');
+            if (storedCounts) {
+                letterExampleCounts = JSON.parse(storedCounts);
+                Object.keys(letterExampleCounts).forEach(letter => {
+                    if (letterExampleCounts[letter] > 0) {
+                        seenLetters.add(letter);
+                    }
+                });
+            }
+            
+            updateStats();
+        });
+        
+        // Manuscript Viewer Functions
+        let selectedCharBoxes = new Set();
+        let manuscriptCharData = {};
+        
+        async function openManuscriptViewer() {
+            console.log('Opening manuscript viewer...');
+            const overlay = document.getElementById('manuscript-overlay');
+            if (!overlay) {
+                console.error('Manuscript overlay element not found!');
+                alert('Error: Manuscript viewer not found');
+                return;
+            }
+            overlay.style.display = 'block';
+            
+            const container = document.getElementById('manuscript-container');
+            if (!container) {
+                console.error('Manuscript container element not found!');
+                alert('Error: Manuscript container not found');
+                return;
+            }
+            
+            // Get the selected source from the main page dropdown
+            const sourceSelect = document.getElementById('source-filter');
+            const selectedSource = sourceSelect ? sourceSelect.value : null;
+            
+            console.log('Opening manuscript viewer, selected source:', selectedSource);
+            
+            // Show loading immediately
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p>Loading...</p></div>';
+            
+            if (selectedSource && selectedSource !== 'all') {
+                // Automatically load the selected page
+                await loadManuscriptPage(selectedSource);
+            } else {
+                // Just get the list of available pages from a quick manifest fetch
+                container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p>Loading page list...</p></div>';
+                
+                try {
+                    const response = await fetch('letters_for_review/manifest.json');
+                    const data = await response.json();
+                    
+                    console.log('Loaded manifest, total letters:', data.letters.length);
+                    
+                    // Get unique sources that have bbox data
+                    const sourceCounts = {};
+                    data.letters.forEach(letter => {
+                        if (letter.source && letter.bbox) {
+                            sourceCounts[letter.source] = (sourceCounts[letter.source] || 0) + 1;
+                        }
+                    });
+                    
+                    const sources = Object.keys(sourceCounts).sort();
+                    console.log('Found sources with bbox:', sources);
+                    
+                    container.innerHTML = '';
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.style.padding = '40px';
+                    wrapper.style.textAlign = 'center';
+                    
+                    if (sources.length > 0) {
+                        const title = document.createElement('h3');
+                        title.textContent = 'Select a manuscript page to view:';
+                        wrapper.appendChild(title);
+                        
+                        const grid = document.createElement('div');
+                        grid.style.display = 'grid';
+                        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+                        grid.style.gap = '10px';
+                        grid.style.marginTop = '20px';
+                        
+                        sources.forEach(source => {
+                            const btn = document.createElement('button');
+                            btn.className = 'btn';
+                            btn.style.margin = '5px';
+                            btn.innerHTML = `Page ${source}<br><small>${sourceCounts[source]} characters with boxes</small>`;
+                            btn.onclick = () => loadManuscriptPage(source);
+                            grid.appendChild(btn);
+                        });
+                        
+                        wrapper.appendChild(grid);
+                    } else {
+                        const msg = document.createElement('p');
+                        msg.textContent = 'No manuscript pages with bounding boxes found. Run the extraction pipeline first.';
+                        wrapper.appendChild(msg);
+                    }
+                    
+                    container.appendChild(wrapper);
+                } catch (error) {
+                    console.error('Error loading manifest:', error);
+                    container.innerHTML = '<p>Error loading page list: ' + error.message + '</p>';
+                }
+            }
+        }
+        
+        function closeManuscriptViewer() {
+            document.getElementById('manuscript-overlay').style.display = 'none';
+            selectedCharBoxes.clear();
+            manuscriptCharData = {};
+        }
+        
+        async function loadManuscriptPage(sourceId) {
+            // If no sourceId provided, try to get from dropdown
+            if (!sourceId) {
+                const sourceSelect = document.getElementById('source-filter');
+                sourceId = sourceSelect.value;
+                if (!sourceId || sourceId === 'all') {
+                    alert('Please select a specific manuscript page');
+                    return;
+                }
+            }
+            
+            const container = document.getElementById('manuscript-container');
+            container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p>Loading manuscript page...</p></div>';
+            
+            // Load manifest to get characters with bounding boxes
+            try {
+                console.log('Loading manuscript page:', sourceId);
+                const response = await fetch('letters_for_review/manifest.json');
+                const data = await response.json();
+                
+                console.log('Manifest loaded, filtering for source:', sourceId);
+                
+                // Filter characters from this source that have bounding boxes
+                const pageChars = data.letters.filter(c => 
+                    c.source === sourceId && c.bbox
+                );
+                
+                console.log('Found characters with bbox:', pageChars.length);
+                
+                if (pageChars.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; padding: 40px;">No characters with bounding box data found for this page.</p>';
+                    return;
+                }
+                
+                // Get the source image filename
+                const sourceImage = pageChars[0].source_image || `${sourceId}.jpg`;
+                
+                // Create container for the manuscript image
+                container.innerHTML = '';
+                const imgContainer = document.createElement('div');
+                imgContainer.style.position = 'relative';
+                imgContainer.style.display = 'inline-block';
+                imgContainer.style.margin = '0 auto';
+                
+                // Load the actual manuscript image
+                const manuscriptImg = document.createElement('img');
+                manuscriptImg.src = `data/${sourceImage}`;
+                manuscriptImg.style.maxWidth = '100%';
+                manuscriptImg.style.height = 'auto';
+                manuscriptImg.style.display = 'block';
+                
+                manuscriptImg.onload = function() {
+                    // Get the displayed dimensions
+                    const displayWidth = manuscriptImg.clientWidth;
+                    const displayHeight = manuscriptImg.clientHeight;
+                    const naturalWidth = manuscriptImg.naturalWidth;
+                    const naturalHeight = manuscriptImg.naturalHeight;
+                    
+                    // Calculate scale factor
+                    const scaleX = displayWidth / naturalWidth;
+                    const scaleY = displayHeight / naturalHeight;
+                    
+                    // Store character data
+                    manuscriptCharData = {};
+                    
+                    // Add bounding boxes for each character
+                    pageChars.forEach(char => {
+                        manuscriptCharData[`letter_${char.id}`] = char;
+                        
+                        // Create bounding box
+                        const box = document.createElement('div');
+                        box.className = 'char-box';
+                        box.dataset.charId = `letter_${char.id}`;
+                        
+                        // Scale and position the box
+                        box.style.left = (char.bbox.x * scaleX) + 'px';
+                        box.style.top = (char.bbox.y * scaleY) + 'px';
+                        box.style.width = (char.bbox.width * scaleX) + 'px';
+                        box.style.height = (char.bbox.height * scaleY) + 'px';
+                        
+                        // Add tooltip with character ID
+                        box.title = `Character ${char.id}`;
+                        
+                        // Add click handler
+                        box.onclick = function() {
+                            toggleCharSelection(this);
+                        };
+                        
+                        imgContainer.appendChild(box);
+                    });
+                    
+                    // Update stats
+                    document.getElementById('manuscript-page-info').textContent = `Page ${sourceId}`;
+                    document.getElementById('manuscript-stats').innerHTML = 
+                        `<strong>Characters with bounding boxes:</strong> ${pageChars.length} | ` +
+                        `<strong>Selected:</strong> <span id="selected-count">0</span>`;
+                };
+                
+                manuscriptImg.onerror = function() {
+                    container.innerHTML = `<p style="text-align: center; padding: 40px;">Error loading manuscript image: ${sourceImage}</p>`;
+                };
+                
+                imgContainer.appendChild(manuscriptImg);
+                container.appendChild(imgContainer);
+                
+            } catch (error) {
+                console.error('Error loading manuscript data:', error);
+                container.innerHTML = '<p style="text-align: center; padding: 40px;">Error loading manuscript data</p>';
+            }
+        }
+        
+        function toggleCharSelection(box) {
+            const charId = box.dataset.charId;
+            
+            if (selectedCharBoxes.has(charId)) {
+                selectedCharBoxes.delete(charId);
+                box.classList.remove('selected');
+            } else {
+                selectedCharBoxes.add(charId);
+                box.classList.add('selected');
+            }
+            
+            // Update selected count
+            const countEl = document.getElementById('selected-count');
+            if (countEl) {
+                countEl.textContent = selectedCharBoxes.size;
+            }
+        }
+        
+        function addSelectedToReview() {
+            if (selectedCharBoxes.size === 0) {
+                alert('No characters selected');
+                return;
+            }
+            
+            // Don't load samples - we'll replace with selected items
+            
+            // Add selected characters to current samples
+            const newChars = [];
+            selectedCharBoxes.forEach(charId => {
+                const charData = manuscriptCharData[charId];
+                if (charData) {
+                    // The charId is like "letter_12345", extract just the number
+                    const numericId = charId.replace('letter_', '');
+                    
+                    // Create proper character object structure matching what loadSamples creates
+                    const charObj = {
+                        id: `letter_${numericId}`,
+                        path: `letters_for_review/${charData.filename}`,
+                        filename: charData.filename,
+                        source: charData.source || 'unknown',
+                        quality: charData.quality || 85,
+                        width: charData.width || 40,
+                        height: charData.height || 40
+                    };
+                    
+                    // Check if not already in current samples
+                    if (!currentSamples.find(s => s.id === charObj.id)) {
+                        newChars.push(charObj);
+                        // Don't add to allCharacters - that should only contain the full dataset
+                    }
+                }
+            });
+            
+            if (newChars.length > 0) {
+                // Replace current samples with only the selected ones
+                currentSamples = newChars;
+                
+                // Clear predictions and corrections for clean slate
+                predictions = {};
+                corrections = {};
+                
+                // Reset displayed count to show from beginning
+                displayedInTable = 0;
+                
+                // Make sure review container is visible
+                document.getElementById('no-data-container').style.display = 'none';
+                document.getElementById('review-container').style.display = 'block';
+                
+                // Force clear the table first
+                const tbody = document.getElementById('review-tbody');
+                tbody.innerHTML = '';
+                
+                // Display the updated samples
+                displaySamples(false); // false = don't append, redraw everything
+                updateStats();
+                
+                console.log('Added characters:', newChars);
+                console.log('Current samples:', currentSamples);
+                alert(`Loaded ${newChars.length} selected characters`);
+                
+                // Clear selection
+                selectedCharBoxes.clear();
+                document.querySelectorAll('.char-box.selected').forEach(box => {
+                    box.classList.remove('selected');
+                });
+                
+                // Close viewer
+                closeManuscriptViewer();
+            } else {
+                alert('Selected characters are already in the review grid');
+            }
+        }
+    </script>
+    
+    <!-- Manuscript Viewer Overlay -->
+    <div id="manuscript-overlay" class="manuscript-overlay">
+        <div class="manuscript-viewer">
+            <div class="manuscript-header">
+                <h2>📜 Manuscript Page Viewer</h2>
+                <div class="manuscript-controls">
+                    <span id="manuscript-page-info" style="font-weight: 600; margin-right: 20px;"></span>
+                    <button onclick="addSelectedToReview()" class="btn btn-success">Add Selected to Review</button>
+                    <button onclick="closeManuscriptViewer()" class="close-manuscript">✕ Close</button>
+                </div>
+            </div>
+            
+            <div class="manuscript-canvas-container" id="manuscript-container">
+                <!-- Canvas and boxes will be added here -->
+            </div>
+            
+            <div class="manuscript-info">
+                <p><strong>Instructions:</strong> Click on character boxes to select them. Selected characters will be highlighted in blue. Click "Add Selected to Review" to add them to the main review grid.</p>
+                <p id="manuscript-stats"></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
